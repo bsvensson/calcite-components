@@ -1,13 +1,14 @@
 import {
   Component,
-  h,
-  Host,
-  Prop,
+  Element,
   Event,
   EventEmitter,
-  Element,
+  h,
+  Host,
   Listen,
-  State
+  Prop,
+  State,
+  VNode
 } from "@stencil/core";
 import { getElementDir } from "../../utils/dom";
 import { TEXT } from "./calcite-video.resources";
@@ -133,7 +134,7 @@ export class CalciteVideo {
   //
   //--------------------------------------------------------------------------
 
-  render() {
+  render(): VNode {
     const dir = getElementDir(this.el);
 
     const playControl = (
@@ -159,7 +160,7 @@ export class CalciteVideo {
         <calcite-slider
           max={1}
           min={0}
-          onCalciteSliderChange={(e) => this.updateVolumeLevel(e)}
+          onCalciteSliderInput={(e) => this.updateVolumeLevel(e)}
           onKeyDown={(e) => this.handleVolumeSliderKeyDown(e)}
           step={0.1}
           value={!this.muted ? (this.volumeLevel as number) : 0}
@@ -200,7 +201,13 @@ export class CalciteVideo {
             indicator={this.isSubtitleActive}
             slot="dropdown-trigger"
             text={this.isSubtitleActive ? `${this.subLang?.toUpperCase()}` : null}
-          />
+          >
+            {this.isSubtitleActive && (
+              <calcite-chip appearance="clear" scale="s" value={this.subLang?.toUpperCase()}>
+                {this.subLang?.toUpperCase()}
+              </calcite-chip>
+            )}
+          </calcite-action>
           <calcite-dropdown-group selection-mode="single">
             <calcite-dropdown-item
               active={!this.isSubtitleActive}
@@ -246,31 +253,33 @@ export class CalciteVideo {
 
     return (
       <Host>
-        <div class="container" dir={dir} tabIndex={0}>
+        <div
+          class={`container ${this.isFullscreen ? " container-fullscreen" : ""}`}
+          dir={dir}
+          tabIndex={0}
+        >
           <calcite-loader active={this.isLoading} label="video loading" type="indeterminate" />
-          <div
-            class={`calcite-video-wrapper ${this.isFullscreen ? " calcite-video-fullscreen" : ""}`}
+
+          <video
+            // ensure video is muted if autoplay is requested
+            // not sure if autoplay requires a fake interaction event
+            autoplay={this.autoplay}
+            controls={false}
+            height={this.height}
+            loop={this.loop}
+            muted={this.muted || this.autoplay}
+            onCanPlay={() => this.videoLoadFinish()}
+            onEnded={() => this.handleVideoUpdate()}
+            onLoadStart={() => this.videoLoadStart()}
+            onLoadedMetaData={() => this.getVideoInfo()}
+            onTimeUpdate={() => this.handleVideoUpdate()}
+            preload={this.preload}
+            ref={(el) => (this.videoEl = el)}
+            width={this.width}
           >
-            <video
-              // ensure video is muted if autoplay is requested
-              autoplay={this.autoplay}
-              controls={false}
-              height={this.height}
-              loop={this.loop}
-              muted={this.muted || this.autoplay}
-              onCanPlay={() => this.videoLoadFinish()}
-              onEnded={() => this.handleVideoUpdate()}
-              onLoadStart={() => this.videoLoadStart()}
-              onLoadedMetaData={() => this.getVideoInfo()}
-              onTimeUpdate={() => this.handleVideoUpdate()}
-              preload={this.preload}
-              ref={(el) => (this.videoEl = el)}
-              width={this.width}
-            >
-              <slot />
-            </video>
-            {subtitleContainer}
-          </div>
+            <slot />
+          </video>
+          {subtitleContainer}
           {!this.disableControls ? (
             <div class="calcite-video-footer">
               {!this.disableProgress ? progress : null}
@@ -472,15 +481,12 @@ export class CalciteVideo {
 
   handleSubtitleToggle(): void {
     // if one language, toggle and don't show a menu
-    if (this.availableSubtitles) {
-      for (const item of Object.values(this.availableSubtitles)) {
-        if (item.language === this.subLang) {
-          this.isSubtitleActive = !this.isSubtitleActive;
-        }
-      }
+    if (
+      this.availableSubtitles &&
+      Object.values(this.availableSubtitles).some((item) => item.language === this.subLang)
+    ) {
+      this.isSubtitleActive = !this.isSubtitleActive;
       this.handleSubtitleUpdate();
-    } else {
-      return;
     }
   }
 
@@ -560,6 +566,7 @@ export class CalciteVideo {
   }
 
   toggleFullscreen(): void {
+    // todo a better way of doing this w/o browser speciic items
     // todo remove type any - get errors without
     if (!this.isFullscreen) {
       this.isFullscreen = true;
@@ -587,6 +594,7 @@ export class CalciteVideo {
   }
 
   formatTime(currentTime: number): any {
+    // this is probably wrong
     // todo fix the flash of :60 seconds
     if (currentTime) {
       const hours = Math.floor(currentTime / 3600);

@@ -3,7 +3,7 @@
 }
 
 calcite-video .container {
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
   position: relative;
   width: auto;
@@ -72,6 +72,7 @@ calcite-video[show-controls-on-hover] .container:hover {
 
 .calcite-video-wrapper {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   position: relative;
   box-sizing: border-box;
@@ -152,7 +153,7 @@ calcite-slider.calcite-video-scrubber {
   & calcite-chip {
     display: inline-flex;
     align-items: baseline;
-    margin: 0 5px;
+    margin-inline-start: 8px;
     cursor: pointer;
   }
 }
