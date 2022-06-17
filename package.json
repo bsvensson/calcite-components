@@ -38,6 +38,7 @@
     "release:next": "npm ci && npm test && npm run util:deploy-next",
     "release:prepare": "npm ci && npm test && ts-node --project ./tsconfig-node-scripts.json support/prepReleaseCommit.ts && npm run build",
     "release:publish": "npm run util:push-tags && npm publish && ts-node ./support/releaseToGitHub.ts",
+    "serve": "web-dev-server www/index.html --node-resolve --open --watch",
     "start": "concurrently --kill-others --raw \"tsc --project ./tsconfig-demos.json --watch\" \"npm run build:watch-dev -- --serve\" \"ts-node ./support/cleanOnProcessExit.ts --path ./src/demos/**/*.js \"",
     "test": "npm run util:run-tests",
     "test:prerender": "stencil build --no-docs --prerender",
@@ -53,7 +54,9 @@
     "util:publish-next": "npm publish --tag next",
     "util:check-squash-mergeable-branch": "ts-node --project ./tsconfig-node-scripts.json support/checkSquashMergeableBranch.ts",
     "util:push-tags": "git push --atomic --follow-tags origin master",
-    "util:run-tests": "npm run util:copy-icons && stencil test --no-docs --spec --e2e"
+    "util:run-tests": "npm run util:copy-icons && stencil test --no-docs --spec --e2e",
+    "wtr": "web-test-runner test/**/*.test.js --node-resolve",
+    "wtr:update-baseline": "web-test-runner test/**/*.test.js --node-resolve --update-visual-baseline"
   },
   "repository": {
     "type": "git",
@@ -75,6 +78,7 @@
     "@esri/calcite-colors": "6.0.1",
     "@esri/calcite-ui-icons": "3.19.3",
     "@esri/eslint-plugin-calcite-components": "0.1.4",
+    "@open-wc/testing": "3.1.5",
     "@stencil/eslint-plugin": "0.4.0",
     "@stencil/postcss": "2.1.0",
     "@stencil/sass": "1.5.2",
@@ -98,6 +102,9 @@
     "@types/yargs": "17.0.10",
     "@typescript-eslint/eslint-plugin": "5.27.0",
     "@typescript-eslint/parser": "5.27.1",
+    "@web/dev-server": "0.1.31",
+    "@web/test-runner": "0.13.30",
+    "@web/test-runner-visual-regression": "0.6.5",
     "@whitespace/storybook-addon-html": "5.0.0",
     "autoprefixer": "10.4.7",
     "axe-core": "4.4.2",
