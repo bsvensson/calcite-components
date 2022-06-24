@@ -308,30 +308,44 @@ export class PickListItem implements ConditionalSlotComponent, InteractiveCompon
     ) : null;
   }
 
-  render(): VNode {
+  renderNonInteractive(): VNode {
     const { description, label } = this;
+    return (
+      <div class={CSS.textContainer}>
+        <span class={CSS.title}>{label}</span>
+        {description ? <span class={CSS.description}>{description}</span> : null}
+      </div>
+    );
+  }
+
+  render(): VNode {
+    const { description, label, nonInteractive } = this;
 
     return (
       <Fragment>
         {this.renderIcon()}
         {this.renderActionsStart()}
-        <label
-          aria-label={label}
-          class={CSS.label}
-          onClick={this.pickListClickHandler}
-          onKeyDown={this.pickListKeyDownHandler}
-          ref={(focusEl): HTMLLabelElement => (this.focusEl = focusEl)}
-          tabIndex={0}
-        >
-          <div
-            aria-checked={toAriaBoolean(this.selected)}
-            class={CSS.textContainer}
-            role="menuitemcheckbox"
+        {nonInteractive ? (
+          this.renderNonInteractive()
+        ) : (
+          <label
+            aria-label={label}
+            class={CSS.label}
+            onClick={this.pickListClickHandler}
+            onKeyDown={this.pickListKeyDownHandler}
+            ref={(focusEl): HTMLLabelElement => (this.focusEl = focusEl)}
+            tabIndex={0}
           >
-            <span class={CSS.title}>{label}</span>
-            {description ? <span class={CSS.description}>{description}</span> : null}
-          </div>
-        </label>
+            <div
+              aria-checked={toAriaBoolean(this.selected)}
+              class={CSS.textContainer}
+              role={"menuitemcheckbox"}
+            >
+              <span class={CSS.title}>{label}</span>
+              {description ? <span class={CSS.description}>{description}</span> : null}
+            </div>
+          </label>
+        )}
         {this.renderActionsEnd()}
       </Fragment>
     );
