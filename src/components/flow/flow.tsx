@@ -2,7 +2,7 @@ import { Component, Element, Listen, Method, State, h, VNode } from "@stencil/co
 
 import { CSS } from "./resources";
 
-import { FlowDirection } from "./interfaces";
+import { FlowDirection, PanelLike } from "./interfaces";
 
 /**
  * @slot - A slot for adding `calcite-panel`s to the flow.
@@ -23,7 +23,7 @@ export class Flow {
    * Removes the currently active `calcite-panel`.
    */
   @Method()
-  async back(): Promise<HTMLCalcitePanelElement> {
+  async back(): Promise<PanelLike> {
     const { panels } = this;
 
     const lastItem = panels[panels.length - 1];
@@ -55,7 +55,7 @@ export class Flow {
 
   @State() flowDirection: FlowDirection = null;
 
-  @State() panels: HTMLCalcitePanelElement[] = [];
+  @State() panels: PanelLike[] = [];
 
   // --------------------------------------------------------------------------
   //
@@ -92,7 +92,7 @@ export class Flow {
       .assignedElements({
         flatten: true
       })
-      .filter((el) => el?.matches("calcite-panel")) as HTMLCalcitePanelElement[];
+      .filter((el) => el?.matches("calcite-panel, [data-custom-panel]")) as PanelLike[];
 
     const oldPanelCount = panels.length;
     const newPanelCount = newPanels.length;
