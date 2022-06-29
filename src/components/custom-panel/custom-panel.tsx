@@ -24,7 +24,8 @@ export class CustomPanel {
           menuOpen={this.menuOpen}
           showBackButton={this.showBackButton}
         >
-          <img src="https://via.placeholder.com/600x600.png?text=calcite-custom-panel" />
+          <slot name="header-content" />
+          <slot />
         </calcite-panel>
       </Host>
     );
