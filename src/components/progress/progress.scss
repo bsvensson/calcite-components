@@ -5,7 +5,7 @@
 .track,
 .bar {
   @apply absolute top-0;
-  height: 2px;
+  block-size: 2px;
 }
 
 .track {
@@ -36,7 +36,7 @@
 }
 
 .text {
-  @apply pt-4 pb-0 px-0 text-center text-n2h font-medium;
+  @apply text-n2h px-0 pt-4 pb-0 text-center font-medium;
 }
 
 @keyframes looping-progress-bar-ani {
@@ -44,7 +44,7 @@
     transform: translate3d(-100%, 0, 0);
   }
   50% {
-    width: 40%;
+    inline-size: 40%;
   }
   100% {
     transform: translate3d(600%, 0, 0);

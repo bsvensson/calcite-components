@@ -21,17 +21,18 @@ import {
   connectConditionalSlotComponent,
   disconnectConditionalSlotComponent
 } from "../../utils/conditionalSlot";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 
 /**
- * @slot actions-end - A slot for adding actions or content to the end side of the item.
- * @slot actions-start - A slot for adding actions or content to the start side of the item.
+ * @slot actions-end - A slot for adding actions or content to the end side of the component.
+ * @slot actions-start - A slot for adding actions or content to the start side of the component.
  */
 @Component({
   tag: "calcite-value-list-item",
   styleUrl: "value-list-item.scss",
   shadow: true
 })
-export class ValueListItem implements ConditionalSlotComponent {
+export class ValueListItem implements ConditionalSlotComponent, InteractiveComponent {
   // --------------------------------------------------------------------------
   //
   //  Properties
@@ -39,58 +40,59 @@ export class ValueListItem implements ConditionalSlotComponent {
   // --------------------------------------------------------------------------
 
   /**
-   * An optional description for this item. Will appear below the label text.
+   * A description for the component that displays below the label text.
    */
   @Prop({ reflect: true }) description?: string;
 
   /**
-   * When true, the item cannot be clicked and is visually muted
+   * When true, interaction is prevented and the component is displayed with lower opacity.
    */
-  @Prop({ reflect: true }) disabled? = false;
+  @Prop({ reflect: true }) disabled = false;
 
   /**
-   * @internal When false, the item cannot be deselected by user interaction.
+   * @internal
    */
   @Prop() disableDeselect = false;
 
   /**
-   * When true, prevents the content of the list item from user interaction.
+   * When true, prevents the content of the component from user interaction.
    */
   @Prop({ reflect: true }) nonInteractive = false;
 
   /**
-   * @internal - stores the activated state of the drag handle.
+   * @internal
    */
   @Prop({ mutable: true }) handleActivated? = false;
 
   /**
    * Determines the icon SVG symbol that will be shown. Options are circle, square, grip or null.
+   *
    * @see [ICON_TYPES](https://github.com/Esri/calcite-components/blob/master/src/components/pick-list/resources.ts#L5)
    */
   @Prop({ reflect: true }) icon?: ICON_TYPES | null = null;
 
   /**
-   * The main label for this item. Appears next to the icon.
+   * Label and accessible name for the component. Appears next to the icon.
    */
   @Prop({ reflect: true }) label!: string;
 
   /**
-   * Used to provide additional metadata to an item, primarily used when the parent list has a filter.
+   * Provides additional metadata to the component. Primary use is for a filter on the parent list.
    */
   @Prop() metadata?: Record<string, unknown>;
 
   /**
-   * Set this to true to display a remove action that removes the item from the list.
+   * When true, adds an action to remove the component.
    */
   @Prop({ reflect: true }) removable = false;
 
   /**
-   * Set this to true to pre-select an item. Toggles when an item is checked/unchecked.
+   * When true, the component is selected.
    */
   @Prop({ reflect: true, mutable: true }) selected = false;
 
   /**
-   * The item's associated value.
+   * The component's value.
    */
   @Prop() value!: any;
 
@@ -120,6 +122,10 @@ export class ValueListItem implements ConditionalSlotComponent {
     disconnectConditionalSlotComponent(this);
   }
 
+  componentDidRender(): void {
+    updateHostInteraction(this, this.el.closest("calcite-value-list") ? "managed" : false);
+  }
+
   // --------------------------------------------------------------------------
   //
   //  Public Methods
@@ -127,15 +133,17 @@ export class ValueListItem implements ConditionalSlotComponent {
   // --------------------------------------------------------------------------
 
   /**
-   * Used to toggle the selection state. By default this won't trigger an event.
+   * Toggle the selection state. By default this won't trigger an event.
    * The first argument allows the value to be coerced, rather than swapping values.
+   *
+   * @param coerce
    */
   @Method()
   async toggleSelected(coerce?: boolean): Promise<void> {
     this.pickListItem.toggleSelected(coerce);
   }
 
-  /** Sets focus on the component. */
+  /** Set focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
     this.pickListItem?.setFocus();
@@ -148,7 +156,7 @@ export class ValueListItem implements ConditionalSlotComponent {
   // --------------------------------------------------------------------------
 
   /**
-   * Emitted whenever the remove button is pressed.
+   * Fires when the remove button is pressed.
    */
   @Event() calciteListItemRemove: EventEmitter<void>; // wrapped pick-list-item emits this
 
@@ -210,7 +218,6 @@ export class ValueListItem implements ConditionalSlotComponent {
     if (icon === ICON_TYPES.grip) {
       return (
         <span
-          aria-pressed={this.handleActivated.toString()}
           class={{
             [CSS.handle]: true,
             [CSS.handleActivated]: this.handleActivated

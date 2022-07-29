@@ -3,7 +3,7 @@
  *
  * These properties can be overridden using the component's tag as selector.
  *
- * @prop --calcite-pagination-spacing: the amount of padding around each pagination item
+ * @prop --calcite-pagination-spacing: The amount of padding around each pagination item.
  */
 
 // explicit px values until we add a spacing unit and new font scale to base
@@ -62,18 +62,17 @@
 .previous,
 .next,
 .page {
-  @apply flex
+  @apply text-0h
+    text-color-3
+    font-inherit
+    box-border
+    flex
+    cursor-pointer
     items-center
-    bg-transparent
     border-none
     border-opacity-0
-    text-0h
-    text-color-3
-    cursor-pointer
-    font-inherit
-    box-border;
-  border-top: 2px solid transparent;
-  border-bottom: 2px solid transparent;
+    bg-transparent;
+  border-block: 2px solid transparent;
   &:hover {
     @apply text-color-1 transition-default;
   }
@@ -83,7 +82,7 @@
     @apply border-b-color-2;
   }
   &.is-selected {
-    @apply font-medium text-color-1 border-b-color-brand;
+    @apply text-color-1 border-b-color-brand font-medium;
   }
 }
 .previous,
@@ -96,19 +95,19 @@
     @apply bg-foreground-3;
   }
   &.is-disabled {
-    @apply bg-transparent pointer-events-none;
+    @apply pointer-events-none bg-transparent;
     & > calcite-icon {
       @apply opacity-disabled;
     }
   }
 }
 .next {
-  @apply mr-0;
+  margin-inline-end: theme("spacing.0");
 }
 .page,
 .ellipsis {
   padding: var(--calcite-pagination-spacing);
 }
 .ellipsis {
-  @apply flex items-end text-color-3;
+  @apply text-color-3 flex items-end;
 }

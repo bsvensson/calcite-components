@@ -6,7 +6,7 @@ import {
   createComponentHTML as create
 } from "../../../.storybook/utils";
 import readme from "./readme.md";
-import { html } from "../../tests/utils";
+import { html } from "../../../support/formatting";
 import { createSteps, iconNames, stepStory, setTheme, setKnobs } from "../../../.storybook/helpers";
 import { ATTRIBUTES } from "../../../.storybook/resources";
 const { alignment, scale } = ATTRIBUTES;
@@ -548,3 +548,14 @@ export const Default = stepStory(
     )
     .snapshot("Text Overflow")
 );
+
+export const ArabicLocale = (): string => html`
+  <calcite-action
+    dir="rtl"
+    icon="banana"
+    lang="ar"
+    locale="ar-EG"
+    text="لكن لا بد أن أوضح لك أن كل"
+    text-enabled
+  ></calcite-action>
+`;

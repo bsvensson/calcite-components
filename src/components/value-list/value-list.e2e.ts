@@ -4,12 +4,14 @@ import { accessible, hidden, renders } from "../../tests/commonTests";
 import {
   selectionAndDeselection,
   filterBehavior,
-  disabledStates,
+  loadingState,
   keyboardNavigation,
   itemRemoval,
-  focusing
+  focusing,
+  disabling
 } from "../pick-list/shared-list-tests";
-import { dragAndDrop, html } from "../../tests/utils";
+import { dragAndDrop } from "../../tests/utils";
+import { html } from "../../../support/formatting";
 
 describe("calcite-value-list", () => {
   it("renders", () => renders("calcite-value-list", { display: "flex" }));
@@ -22,6 +24,10 @@ describe("calcite-value-list", () => {
         <calcite-value-list-item label="Sample" value="one"></calcite-value-list-item>
       </calcite-value-list>
     `));
+
+  describe("disabling", () => {
+    disabling("value");
+  });
 
   describe("Selection and Deselection", () => {
     selectionAndDeselection("value");
@@ -64,8 +70,8 @@ describe("calcite-value-list", () => {
     itemRemoval("value");
   });
 
-  describe("disabled states", () => {
-    disabledStates("value");
+  describe("loading state", () => {
+    loadingState("value");
   });
 
   describe("setFocus", () => {
@@ -219,6 +225,64 @@ describe("calcite-value-list", () => {
       expect(await seventh.getProperty("value")).toBe("c");
       expect(await eight.getProperty("value")).toBe("e");
       expect(await ninth.getProperty("value")).toBe("f");
+    });
+
+    it("is drag and drop list accessible", async () => {
+      const page = await createSimpleValueList();
+      let startIndex = 0;
+
+      await page.keyboard.press("Tab");
+      await page.waitForChanges();
+
+      const items = await page.findAll("calcite-value-list-item");
+      const item = await page.find('calcite-value-list-item[value="one"]');
+      const handle = await page.find('calcite-value-list-item[value="one"] >>> .handle');
+      const assistiveTextElement = await page.find("calcite-value-list >>> .assistive-text");
+
+      const handleAriaLabel = handle.getAttribute("aria-label");
+      const itemLabel = await item.getProperty("label");
+
+      expect(handleAriaLabel).toBe(
+        `${itemLabel}, press space and use arrow keys to reorder content. Current position ${startIndex + 1} of ${
+          items.length
+        }.`
+      );
+
+      await page.keyboard.press("Space");
+      await page.waitForChanges();
+
+      expect(assistiveTextElement.textContent).toBe(
+        `Reordering ${itemLabel}, current position ${startIndex + 1} of ${items.length}.`
+      );
+
+      await page.keyboard.press("ArrowDown");
+      await page.waitForChanges();
+
+      startIndex += 1;
+      const changeHandleLabel = handle.getAttribute("aria-label");
+
+      expect(changeHandleLabel).toBe(
+        `${itemLabel}, new position ${startIndex + 1} of ${items.length}. Press space to confirm.`
+      );
+      await page.keyboard.press("Space");
+      await page.waitForChanges();
+
+      expect(assistiveTextElement.textContent).toBe(
+        `${itemLabel}, current position ${startIndex + 1} of ${items.length}.`
+      );
+
+      await page.keyboard.press("Space");
+      await page.waitForChanges();
+      await page.keyboard.press("ArrowUp");
+      await page.keyboard.press("Space");
+      await page.waitForChanges();
+
+      startIndex -= 1;
+      const idleHandleLabel = handle.getAttribute("aria-label");
+
+      expect(idleHandleLabel).toBe(
+        `${itemLabel}, new position ${startIndex + 1} of ${items.length}. Press space to confirm.`
+      );
     });
   });
 });

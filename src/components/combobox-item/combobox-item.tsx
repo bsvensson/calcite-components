@@ -15,12 +15,13 @@ import { CSS } from "./resources";
 import { guid } from "../../utils/guid";
 import { ComboboxChildElement } from "../combobox/interfaces";
 import { getAncestors, getDepth } from "../combobox/utils";
-import { Scale } from "../interfaces";
+import { DeprecatedEventPayload, Scale } from "../interfaces";
 import {
   connectConditionalSlotComponent,
   disconnectConditionalSlotComponent,
   ConditionalSlotComponent
 } from "../../utils/conditionalSlot";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 
 /**
  * @slot - A slot for adding nested `calcite-combobox-item`s.
@@ -30,7 +31,7 @@ import {
   styleUrl: "combobox-item.scss",
   shadow: true
 })
-export class ComboboxItem implements ConditionalSlotComponent {
+export class ComboboxItem implements ConditionalSlotComponent, InteractiveComponent {
   // --------------------------------------------------------------------------
   //
   //  Properties
@@ -66,8 +67,17 @@ export class ComboboxItem implements ConditionalSlotComponent {
   /** The item's associated value */
   @Prop() value!: any;
 
-  /** Don't filter this item based on the search text */
+  /**
+   * Don't filter this item based on the search text
+   *
+   * @deprecated use filterDisabled instead
+   */
   @Prop({ reflect: true }) constant: boolean;
+
+  /**
+   * Do not filter this item based on the search text
+   */
+  @Prop() filterDisabled: boolean;
 
   // --------------------------------------------------------------------------
   //
@@ -97,6 +107,10 @@ export class ComboboxItem implements ConditionalSlotComponent {
     disconnectConditionalSlotComponent(this);
   }
 
+  componentDidRender(): void {
+    updateHostInteraction(this);
+  }
+
   // --------------------------------------------------------------------------
   //
   //  Events
@@ -105,8 +119,10 @@ export class ComboboxItem implements ConditionalSlotComponent {
 
   /**
    * Emitted whenever the item is selected or unselected.
+   *
+   * **Note:**: The event's payload is deprecated, please use the event's target/currentTarget instead
    */
-  @Event() calciteComboboxItemChange: EventEmitter;
+  @Event() calciteComboboxItemChange: EventEmitter<DeprecatedEventPayload>;
 
   // --------------------------------------------------------------------------
   //
@@ -117,6 +133,8 @@ export class ComboboxItem implements ConditionalSlotComponent {
   /**
    * Used to toggle the selection state. By default this won't trigger an event.
    * The first argument allows the value to be coerced, rather than swapping values.
+   *
+   * @param coerce
    */
   @Method()
   async toggleSelected(coerce?: boolean): Promise<void> {

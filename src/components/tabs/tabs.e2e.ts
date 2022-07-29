@@ -1,5 +1,6 @@
 import { newE2EPage } from "@stencil/core/testing";
 import { accessible, renders, defaults } from "../../tests/commonTests";
+import { html } from "../../../support/formatting";
 
 describe("calcite-tabs", () => {
   const tabsContent = `
@@ -21,7 +22,7 @@ describe("calcite-tabs", () => {
   it("has defaults", async () =>
     defaults("calcite-tabs", [
       { propertyName: "layout", defaultValue: "inline" },
-      { propertyName: "position", defaultValue: "above" },
+      { propertyName: "position", defaultValue: "top" },
       { propertyName: "scale", defaultValue: "m" }
     ]));
 
@@ -51,10 +52,10 @@ describe("calcite-tabs", () => {
     const tabs = await page.findAll("calcite-tab");
     const titles = await page.findAll("calcite-tab-title");
 
-    expect(tabs[0]).toEqualAttribute("aria-expanded", "true");
-    expect(tabs[1]).toEqualAttribute("aria-expanded", "false");
-    expect(tabs[2]).toEqualAttribute("aria-expanded", "false");
-    expect(tabs[3]).toEqualAttribute("aria-expanded", "false");
+    expect(titles[0]).toEqualAttribute("aria-selected", "true");
+    expect(titles[1]).toEqualAttribute("aria-selected", "false");
+    expect(titles[2]).toEqualAttribute("aria-selected", "false");
+    expect(titles[3]).toEqualAttribute("aria-selected", "false");
 
     for (let index = 0; index < tabs.length; index++) {
       const tab = tabs[index];
@@ -104,30 +105,6 @@ describe("calcite-tabs", () => {
       expect(title).toEqualAttribute("aria-controls", tab.id);
       expect(tab).toEqualAttribute("aria-labelledby", title.id);
     }
-  });
-
-  it("disallows selection of a disabled tab", async () => {
-    const page = await newE2EPage();
-
-    await page.setContent(`
-      <calcite-tabs>
-        <calcite-tab-nav slot="tab-nav">
-          <calcite-tab-title id="title-1" active>Tab 1 Title</calcite-tab-title>
-          <calcite-tab-title disabled id="title-2" >Tab 2 Title</calcite-tab-title>
-        </calcite-tab-nav>
-
-        <calcite-tab id="tab-1" active>Tab 1 Content</calcite-tab>
-        <calcite-tab id="tab-2">Tab 2 Content</calcite-tab>
-      </calcite-tabs>
-    `);
-
-    await page.waitForChanges();
-
-    const [, tab2] = await page.findAll("calcite-tab");
-    const [, tabTitle2] = await page.findAll("calcite-tab-title");
-
-    await tabTitle2.click();
-    expect(tab2).not.toHaveAttribute("active");
   });
 
   describe("when no scale is provided", () => {
@@ -204,10 +181,29 @@ describe("calcite-tabs", () => {
       expect(indicatorStyles.bottom).not.toEqual("0px");
     });
 
-    it("should render tab-nav's blue active indicator on bottom when position is below", async () => {
+    it("should render tab-nav's blue active indicator on bottom when position is below (deprecated)", async () => {
       const page = await newE2EPage({
         html: `
         <calcite-tabs bordered position="below">
+          <calcite-tab-nav slot="tab-nav">
+            <calcite-tab-title icon-start="arrow-left" icon-end="arrow-right">Tab 1 Title</calcite-tab-title>
+            <calcite-tab-title icon-start="arrow-left" icon-end="arrow-right" >Tab 2 Title</calcite-tab-title>
+          </calcite-tab-nav>
+          <calcite-tab>Tab 1 Content</calcite-tab>
+          <calcite-tab>Tab 2 Content</calcite-tab>
+        </calcite-tabs>
+        `
+      });
+      const indicator = await page.find("calcite-tab-nav >>> .tab-nav-active-indicator-container");
+      const indicatorStyles = await indicator.getComputedStyle();
+      expect(indicatorStyles.bottom).toEqual("0px");
+      expect(indicatorStyles.top).not.toEqual("0px");
+    });
+
+    it("should render tab-nav's blue active indicator on bottom when position is bottom", async () => {
+      const page = await newE2EPage({
+        html: `
+        <calcite-tabs bordered position="bottom">
           <calcite-tab-nav slot="tab-nav">
             <calcite-tab-title icon-start="arrow-left" icon-end="arrow-right">Tab 1 Title</calcite-tab-title>
             <calcite-tab-title icon-start="arrow-left" icon-end="arrow-right" >Tab 2 Title</calcite-tab-title>
@@ -229,5 +225,105 @@ describe("calcite-tabs", () => {
       html: `<calcite-tabs layout="center" bordered>${tabsContent}</calcite-tabs>`
     });
     expect(await page.find("calcite-tabs")).not.toHaveAttribute("bordered");
+  });
+
+  it("item selection should work when placed inside shadow DOM (#992)", async () => {
+    const wrappedTabTemplateHTML = html`
+      <calcite-tabs>
+        <calcite-tab-nav slot="tab-nav">
+          <calcite-tab-title id="title-1" active>Tab 1 Title</calcite-tab-title>
+          <calcite-tab-title id="title-2">Tab 2 Title</calcite-tab-title>
+        </calcite-tab-nav>
+        <calcite-tab id="tab-1" active>Tab 1 Content</calcite-tab>
+        <calcite-tab id="tab-2">Tab 2 Content</calcite-tab>
+      </calcite-tabs>
+    `;
+
+    const page = await newE2EPage({
+      // load page with the tab template,
+      // so they're available in the browser-evaluated fn below
+      html: wrappedTabTemplateHTML
+    });
+
+    await page.waitForChanges();
+
+    const finalSelectedItem = await page.evaluate(
+      async (templateHTML: string): Promise<{ titleTab: string; contentTab: string }> => {
+        const wrapperName = "tab-wrapping-component";
+
+        customElements.define(
+          wrapperName,
+          class extends HTMLElement {
+            constructor() {
+              super();
+            }
+
+            connectedCallback(): void {
+              this.attachShadow({ mode: "open" }).innerHTML = templateHTML;
+            }
+          }
+        );
+
+        document.body.innerHTML = `<${wrapperName}></${wrapperName}>`;
+
+        const wrapper = document.querySelector(wrapperName);
+        wrapper.shadowRoot.querySelector<HTMLElement>("#title-2").click();
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+        const titleTab = wrapper.shadowRoot.querySelector("calcite-tab-title[active]").id;
+        const contentTab = wrapper.shadowRoot.querySelector("calcite-tab[active]").id;
+        return { titleTab, contentTab };
+      },
+      [wrappedTabTemplateHTML]
+    );
+    expect(finalSelectedItem.titleTab).toBe("title-2");
+    expect(finalSelectedItem.contentTab).toBe("tab-2");
+  });
+
+  it("item selection should work with nested tabs", async () => {
+    const page = await newE2EPage({
+      html: html`
+        <calcite-tabs id="parentTabs">
+          <calcite-tab-nav slot="tab-nav">
+            <calcite-tab-title id="parentA">Parent 1</calcite-tab-title>
+            <calcite-tab-title>Parent 2</calcite-tab-title>
+          </calcite-tab-nav>
+          <calcite-tab id="parentTabA">
+            <calcite-tabs>
+              <calcite-tab-nav slot="tab-nav">
+                <calcite-tab-title>Child 1</calcite-tab-title>
+                <calcite-tab-title id="kidB">Child 2</calcite-tab-title>
+                <calcite-tab-title>Child 3</calcite-tab-title>
+              </calcite-tab-nav>
+              <calcite-tab>child content 1</calcite-tab>
+              <calcite-tab id="kidBTab">child content 2</calcite-tab>
+              <calcite-tab>child content 3</calcite-tab>
+            </calcite-tabs>
+          </calcite-tab>
+          <calcite-tab>Parent content 2</calcite-tab>
+        </calcite-tabs>
+      `
+    });
+
+    await page.waitForChanges();
+
+    const kidB = await page.find("#kidB");
+    await kidB.click();
+
+    await page.waitForChanges();
+
+    const parentTabA = await page.find("#parentTabA");
+    const childTitle = (await parentTabA.find("calcite-tab-title[active]")).getAttribute("id");
+    const childContent = (await parentTabA.find("calcite-tab[active]")).getAttribute("id");
+
+    const parentTabs = await page.find("#parentTabs");
+    const parentTitle = (await parentTabs.find("calcite-tab-title[active]")).getAttribute("id");
+    const parentContent = (await parentTabs.find("calcite-tab[active]")).getAttribute("id");
+
+    expect(childTitle).toBe("kidB");
+    expect(childContent).toBe("kidBTab");
+    expect(parentTitle).toBe("parentA");
+    expect(parentContent).toBe("parentTabA");
   });
 });

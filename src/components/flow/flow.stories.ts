@@ -3,7 +3,7 @@ import { filterComponentAttributes, Attributes, createComponentHTML as create } 
 import readme from "./readme.md";
 import itemReadme from "../panel/readme.md";
 import { SLOTS, TEXT } from "../panel/resources";
-import { html } from "../../tests/utils";
+import { html } from "../../../support/formatting";
 
 export default {
   title: "Components/Flow",
@@ -38,8 +38,8 @@ const createFlowItemAttributes: (group: string) => Attributes = (group) => {
       value: boolean("menuOpen", false, group)
     },
     {
-      name: "summary",
-      value: text("summary", "Summary", group)
+      name: "description",
+      value: text("description", "Description", group)
     },
     {
       name: "intl-back",

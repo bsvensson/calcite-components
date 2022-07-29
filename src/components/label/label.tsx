@@ -1,5 +1,6 @@
 import { Component, Element, Event, h, Prop, EventEmitter, VNode, Host } from "@stencil/core";
 import { Alignment, Scale, Status } from "../interfaces";
+import { labelDisconnectedEvent, labelConnectedEvent } from "../../utils/label";
 import { CSS } from "./resources";
 
 /**
@@ -30,6 +31,7 @@ export class Label {
 
   /**
    * specify the status of the label and any child input / input messages
+   *
    * @deprecated set directly on child element instead
    */
   @Prop({ reflect: true }) status: Status = "idle";
@@ -43,11 +45,19 @@ export class Label {
   /** is the wrapped element positioned inline with the label slotted text */
   @Prop({ reflect: true }) layout: "inline" | "inline-space-between" | "default" = "default";
 
-  /** eliminates any space around the label */
-  @Prop() disableSpacing = false;
-
-  /** is the label disabled  */
+  /**
+   * is the label disabled
+   *
+   * @deprecated use the `disabled` property on the interactive components instead
+   */
   @Prop({ reflect: true }) disabled = false;
+
+  /**
+   * eliminates any space around the label
+   *
+   * @deprecated set the --calcite-label-margin-bottom css variable to 0 instead
+   */
+  @Prop() disableSpacing = false;
 
   //--------------------------------------------------------------------------
   //
@@ -79,6 +89,14 @@ export class Label {
   //  Lifecycle
   //
   //--------------------------------------------------------------------------
+
+  connectedCallback(): void {
+    document.dispatchEvent(new CustomEvent(labelConnectedEvent));
+  }
+
+  disconnectedCallback(): void {
+    document.dispatchEvent(new CustomEvent(labelDisconnectedEvent));
+  }
 
   render(): VNode {
     return (

@@ -14,13 +14,14 @@ import { getElementDir } from "../../utils/dom";
 import { DateLocaleData } from "../date-picker/utils";
 import { Scale } from "../interfaces";
 import { CSS_UTILITY } from "../../utils/resources";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 
 @Component({
   tag: "calcite-date-picker-day",
   styleUrl: "date-picker-day.scss",
   shadow: true
 })
-export class DatePickerDay {
+export class DatePickerDay implements InteractiveComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -85,8 +86,8 @@ export class DatePickerDay {
     !this.disabled && this.calciteDaySelect.emit();
   };
 
-  keyDownHandler = (e: KeyboardEvent): void => {
-    const key = e.key;
+  keyDownHandler = (event: KeyboardEvent): void => {
+    const key = event.key;
     if (key === " " || key === "Enter") {
       !this.disabled && this.calciteDaySelect.emit();
     }
@@ -94,9 +95,7 @@ export class DatePickerDay {
 
   @Listen("mouseover")
   mouseoverHandler(): void {
-    this.calciteDayHover.emit({
-      disabled: this.disabled
-    });
+    this.calciteInternalDayHover.emit();
   }
 
   //--------------------------------------------------------------------------
@@ -108,13 +107,14 @@ export class DatePickerDay {
   /**
    * Emitted when user selects day
    */
-  @Event() calciteDaySelect: EventEmitter;
+  @Event() calciteDaySelect: EventEmitter<void>;
 
   /**
    * Emitted when user hovers over a day
+   *
    * @internal
    */
-  @Event() calciteDayHover: EventEmitter;
+  @Event() calciteInternalDayHover: EventEmitter<void>;
 
   //--------------------------------------------------------------------------
   //
@@ -128,12 +128,7 @@ export class DatePickerDay {
       .join("");
     const dir = getElementDir(this.el);
     return (
-      <Host
-        onClick={this.onClick}
-        onKeyDown={this.keyDownHandler}
-        role="gridcell"
-        tabindex={this.active ? 0 : -1}
-      >
+      <Host onClick={this.onClick} onKeyDown={this.keyDownHandler} role="gridcell">
         <div class={{ "day-v-wrapper": true, [CSS_UTILITY.rtl]: dir === "rtl" }}>
           <div class="day-wrapper">
             <span class="day">
@@ -143,5 +138,13 @@ export class DatePickerDay {
         </div>
       </Host>
     );
+  }
+
+  componentDidRender(): void {
+    updateHostInteraction(this, this.isTabbable);
+  }
+
+  isTabbable(): boolean {
+    return this.active;
   }
 }

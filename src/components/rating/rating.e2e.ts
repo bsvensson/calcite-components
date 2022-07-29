@@ -1,5 +1,5 @@
 import { newE2EPage } from "@stencil/core/testing";
-import { renders, accessible, focusable, labelable, formAssociated } from "../../tests/commonTests";
+import { renders, accessible, focusable, labelable, formAssociated, disabled } from "../../tests/commonTests";
 
 describe("calcite-rating", () => {
   it("renders", async () => renders("<calcite-rating></calcite-rating>", { display: "flex" }));
@@ -7,6 +7,8 @@ describe("calcite-rating", () => {
   it("should be accessible", async () => accessible(`<calcite-rating></calcite-rating>`));
 
   it("is labelable", async () => labelable("calcite-rating"));
+
+  it("can be disabled", () => disabled("<calcite-rating value='3'></calcite-rating>"));
 
   it("renders outlined star when no value or average is set", async () => {
     const page = await newE2EPage();
@@ -325,19 +327,26 @@ describe("calcite-rating", () => {
     expect(changeEvent).toHaveReceivedEventDetail({
       value: 4
     });
+    await labels[3].click();
+    expect(element).toEqualAttribute("value", "0");
+    expect(changeEvent).toHaveReceivedEventTimes(3);
+    expect(changeEvent).toHaveReceivedEventDetail({
+      value: 0
+    });
   });
 
   it("can be edited with keyboard like a set of radio inputs", async () => {
     const page = await newE2EPage();
     await page.setContent("<calcite-rating></calcite-rating>");
     const element = await page.find("calcite-rating");
+    const labels = await page.findAll("calcite-rating >>> .star");
     const changeEvent = await element.spyOnEvent("calciteRatingChange");
     await page.keyboard.press("Tab");
     expect(changeEvent).toHaveReceivedEventTimes(0);
     await element.press(" ");
     expect(changeEvent).toHaveReceivedEventTimes(1);
     expect(changeEvent).toHaveReceivedEventDetail({
-      value: 1
+      value: 0
     });
     await page.keyboard.press("ArrowRight");
     expect(changeEvent).toHaveReceivedEventTimes(2);
@@ -359,6 +368,49 @@ describe("calcite-rating", () => {
     expect(changeEvent).toHaveReceivedEventDetail({
       value: 1
     });
+    await page.keyboard.press("Enter");
+    expect(changeEvent).toHaveReceivedEventTimes(6);
+    expect(changeEvent).toHaveReceivedEventDetail({
+      value: 0
+    });
+    await labels[3].click();
+    expect(element).toEqualAttribute("value", "4");
+    expect(changeEvent).toHaveReceivedEventTimes(7);
+    expect(changeEvent).toHaveReceivedEventDetail({
+      value: 4
+    });
+    await labels[3].click();
+    expect(element).toEqualAttribute("value", "0");
+    expect(changeEvent).toHaveReceivedEventTimes(8);
+    expect(changeEvent).toHaveReceivedEventDetail({
+      value: 0
+    });
+  });
+
+  it("cannot be cleared/reset when required props is set true", async () => {
+    const page = await newE2EPage();
+    await page.setContent("<calcite-rating></calcite-rating>");
+    const element = await page.find("calcite-rating");
+    const labels = await page.findAll("calcite-rating >>> .star");
+    element.setProperty("required", true);
+    await page.waitForChanges();
+    const changeEvent = await element.spyOnEvent("calciteRatingChange");
+    await element.press(" ");
+    expect(changeEvent).toHaveReceivedEventTimes(0);
+    await element.press("Enter");
+    expect(changeEvent).toHaveReceivedEventTimes(0);
+    await labels[3].click();
+    expect(element).toEqualAttribute("value", "4");
+    expect(changeEvent).toHaveReceivedEventTimes(1);
+    expect(changeEvent).toHaveReceivedEventDetail({
+      value: 4
+    });
+    await labels[3].click();
+    expect(element).toEqualAttribute("value", "4");
+    expect(changeEvent).toHaveReceivedEventTimes(1);
+    expect(changeEvent).toHaveReceivedEventDetail({
+      value: 4
+    });
   });
 
   it("disables click interaction when readonly is requested", async () => {
@@ -369,16 +421,6 @@ describe("calcite-rating", () => {
     expect(element).toEqualAttribute("value", "4");
     await ratingItem1.click();
     expect(element).toEqualAttribute("value", "4");
-  });
-
-  it("disables click interaction when disabled is requested", async () => {
-    const page = await newE2EPage();
-    await page.setContent("<calcite-rating disabled></calcite-rating>");
-    const element = await page.find("calcite-rating");
-    const ratingItem1 = await page.find("calcite-rating >>> .star");
-    expect(element).toEqualAttribute("value", "0");
-    await ratingItem1.click();
-    expect(element).toEqualAttribute("value", "0");
   });
 
   it("does not render the calcite chip when count and average are not present", async () => {

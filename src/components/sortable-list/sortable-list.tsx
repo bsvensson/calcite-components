@@ -13,6 +13,7 @@ import {
 import { createObserver } from "../../utils/observers";
 import { Layout } from "../interfaces";
 import { CSS } from "./resources";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 
 /**
  * @slot - A slot for adding sortable items.
@@ -22,7 +23,7 @@ import { CSS } from "./resources";
   styleUrl: "sortable-list.scss",
   shadow: true
 })
-export class SortableList {
+export class SortableList implements InteractiveComponent {
   // --------------------------------------------------------------------------
   //
   //  Properties
@@ -98,6 +99,10 @@ export class SortableList {
     this.cleanUpDragAndDrop();
   }
 
+  componentDidRender(): void {
+    updateHostInteraction(this);
+  }
+
   // --------------------------------------------------------------------------
   //
   //  Events
@@ -107,7 +112,7 @@ export class SortableList {
   /**
    * Emitted when the order of the list has changed.
    */
-  @Event() calciteListOrderChange: EventEmitter;
+  @Event() calciteListOrderChange: EventEmitter<void>;
 
   @Listen("calciteHandleNudge")
   calciteHandleNudgeHandler(event: CustomEvent): void {

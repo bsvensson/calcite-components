@@ -1,7 +1,8 @@
 import { E2EElement, E2EPage, newE2EPage } from "@stencil/core/testing";
-import { focusable } from "../../tests/commonTests";
-import { html } from "../../tests/utils";
+import { disabled, focusable } from "../../tests/commonTests";
+import { html } from "../../../support/formatting";
 import { CSS as PICK_LIST_ITEM_CSS } from "../pick-list-item/resources";
+import { selectText } from "../../tests/utils";
 
 type ListType = "pick" | "value";
 type ListElement = HTMLCalcitePickListElement | HTMLCalciteValueListElement;
@@ -23,8 +24,10 @@ export function keyboardNavigation(listType: ListType): void {
       const page = await newE2EPage({
         html: `
         <calcite-${listType}-list multiple>
+          <calcite-${listType}-list-item disabled value="zero" label="Zero (disabled)"></calcite-${listType}-list-item>
           <calcite-${listType}-list-item value="one" label="One"></calcite-${listType}-list-item>
           <calcite-${listType}-list-item value="two" label="Two"></calcite-${listType}-list-item>
+          <calcite-${listType}-list-item disabled value="three" label="Three (disabled)"></calcite-${listType}-list-item>
         </calcite-${listType}-list>
       `
       });
@@ -200,6 +203,24 @@ export function keyboardNavigation(listType: ListType): void {
       await page.keyboard.press("Tab");
 
       expect(await getFocusedItemValue(page)).toEqual("two");
+    });
+
+    it("resets tabindex to selected item when focusing out of list", async () => {
+      const page = await newE2EPage();
+      await page.setContent(html`
+        <calcite-${listType}-list>
+          <calcite-${listType}-list-item value="one" label="One" selected></calcite-${listType}-list-item>
+          <calcite-${listType}-list-item value="two" label="Two"></calcite-${listType}-list-item>
+        </calcite-${listType}-list>
+      `);
+
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Tab");
+      expect(await getFocusedItemValue(page)).toEqual(null);
+
+      await page.keyboard.down("Shift");
+      await page.keyboard.press("Tab");
+      expect(await getFocusedItemValue(page)).toEqual("one");
     });
   });
 }
@@ -406,132 +427,78 @@ export function filterBehavior(listType: ListType): void {
   let page: E2EPage = null;
   let item1: E2EElement;
   let item2: E2EElement;
-  let item1Visible;
-  let item2Visible;
+  let filter: E2EElement;
 
   beforeEach(async () => {
     page = await newE2EPage();
     await page.setContent(`<calcite-${listType}-list filter-enabled>
         <calcite-${listType}-list-item value="1" label="One" description="uno"></calcite-${listType}-list-item>
-        <calcite-${listType}-list-item value="2" label="Two" description="dos"></calcite-${listType}-list-item>
+        <calcite-${listType}-list-item value="2" label="Two [regex chars]" description="dos (regex chars)"></calcite-${listType}-list-item>
       </calcite-${listType}-list>`);
     item1 = await page.find(`calcite-${listType}-list-item[value="1"]`);
     item2 = await page.find(`calcite-${listType}-list-item[value="2"]`);
+    filter = await page.find(`calcite-${listType}-list >>> calcite-filter`);
     item1.setProperty("metadata", { category: "first" });
-    item2.setProperty("metadata", { category: "second" });
+    item2.setProperty("metadata", { category: "second /regex chars/" });
     await page.waitForChanges();
-    await page.evaluate((listType) => {
-      (window as any).filter = document
-        .querySelector(`calcite-${listType}-list`)
-        .shadowRoot.querySelector("calcite-filter");
-      const filter = (window as any).filter;
-      (window as any).filterInput = filter.shadowRoot.querySelector("calcite-input");
-    }, listType);
   });
 
   it("should match text in the label prop", async () => {
     // Match first item
-    await page.evaluate(() => {
-      const filterInput = (window as any).filterInput;
-      filterInput.value = "one";
-      filterInput.dispatchEvent(new CustomEvent("calciteInputInput"));
-    });
+    await selectText(filter);
+    await filter.type("one");
     await item2.waitForNotVisible();
 
-    item1Visible = await item1.isVisible();
-    item2Visible = await item2.isVisible();
+    expect(await item1.isVisible()).toBe(true);
+    expect(await item2.isVisible()).toBe(false);
 
-    expect(item1Visible).toBe(true);
-    expect(item2Visible).toBe(false);
-
-    // Match second item
-    await page.evaluate(() => {
-      const filterInput = (window as any).filterInput;
-      filterInput.value = "two";
-      filterInput.dispatchEvent(new CustomEvent("calciteInputInput"));
-    });
+    // Match second item (with regex chars)
+    await selectText(filter);
+    await filter.type("two [");
     await item1.waitForNotVisible();
 
-    item1Visible = await item1.isVisible();
-    item2Visible = await item2.isVisible();
-    expect(item1Visible).toBe(false);
-    expect(item2Visible).toBe(true);
+    expect(await item1.isVisible()).toBe(false);
+    expect(await item2.isVisible()).toBe(true);
   });
 
   it("should match text in the description prop", async () => {
     // Match first item
-    await page.evaluate(() => {
-      const filterInput = (window as any).filterInput;
-      filterInput.value = "uno";
-      filterInput.dispatchEvent(new CustomEvent("calciteInputInput"));
-    });
+    await selectText(filter);
+    await filter.type("uno");
     await item2.waitForNotVisible();
 
-    item1Visible = await item1.isVisible();
-    item2Visible = await item2.isVisible();
+    expect(await item1.isVisible()).toBe(true);
+    expect(await item2.isVisible()).toBe(false);
 
-    expect(item1Visible).toBe(true);
-    expect(item2Visible).toBe(false);
-
-    // Match second item
-    await page.evaluate(() => {
-      const filterInput = (window as any).filterInput;
-      filterInput.value = "dos";
-      filterInput.dispatchEvent(new CustomEvent("calciteInputInput"));
-    });
+    // Match second item (with regex chars)
+    await selectText(filter);
+    await filter.type("dos (");
     await item1.waitForNotVisible();
 
-    item1Visible = await item1.isVisible();
-    item2Visible = await item2.isVisible();
-    expect(item1Visible).toBe(false);
-    expect(item2Visible).toBe(true);
+    expect(await item1.isVisible()).toBe(false);
+    expect(await item2.isVisible()).toBe(true);
   });
 
   it("should match text in the metadata prop", async () => {
-    await page.evaluate(() => {
-      const filterInput = (window as any).filterInput;
-      filterInput.value = "first";
-      filterInput.dispatchEvent(new CustomEvent("calciteInputInput"));
-    });
+    // Match first item
+    await selectText(filter);
+    await filter.type("first");
     await item2.waitForNotVisible();
 
-    let item1Visible = await item1.isVisible();
-    let item2Visible = await item2.isVisible();
-    expect(item1Visible).toBe(true);
-    expect(item2Visible).toBe(false);
+    expect(await item1.isVisible()).toBe(true);
+    expect(await item2.isVisible()).toBe(false);
 
-    await page.evaluate(() => {
-      const filterInput = (window as any).filterInput;
-      filterInput.value = "second";
-      filterInput.dispatchEvent(new CustomEvent("calciteInputInput"));
-    });
+    // Match second item (with regex chars)
+    await selectText(filter);
+    await filter.type("second /");
     await item1.waitForNotVisible();
 
-    item1Visible = await item1.isVisible();
-    item2Visible = await item2.isVisible();
-    expect(item1Visible).toBe(false);
-    expect(item2Visible).toBe(true);
+    expect(await item1.isVisible()).toBe(false);
+    expect(await item2.isVisible()).toBe(true);
   });
 }
 
-export function disabledStates(listType: ListType): void {
-  it("disabled", async () => {
-    const page = await newE2EPage({
-      html: html`
-        <calcite-${listType}-list disabled>
-          <calcite-${listType}-list-item value="one" label="One"></calcite-${listType}-list-item>
-        </calcite-${listType}-list>
-      `
-    });
-
-    const list = await page.find(`calcite-${listType}-list`);
-    const item1 = await list.find("[value=one]");
-    const toggleSpy = await list.spyOnEvent("calciteListChange");
-
-    await item1.click();
-    expect(toggleSpy).toHaveReceivedEventTimes(0);
-  });
-
+export function loadingState(listType: ListType): void {
   it("loading", async () => {
     const page = await newE2EPage();
     await page.setContent(`<calcite-${listType}-list loading>
@@ -548,10 +515,26 @@ export function disabledStates(listType: ListType): void {
 }
 
 export function itemRemoval(listType: ListType): void {
+  const pickListGroupHtml = html` <calcite-pick-list-group
+      label="Will be removed when slotted 'parent item' is removed"
+      value="remove-me"
+    >
+      <calcite-pick-list-item
+        slot="parent-item"
+        value="remove-me"
+        label="Remove me!"
+        removable
+      ></calcite-pick-list-item>
+    </calcite-pick-list-group>
+    <calcite-pick-list-group label="Will not be removed when child item is removed" value="do-not-remove-me">
+      <calcite-pick-list-item value="remove-me" label="Do not remove me!" removable></calcite-pick-list-item>
+    </calcite-pick-list-group>`;
+
   it("handles removing items", async () => {
     const page = await newE2EPage({
       html: html`
       <calcite-${listType}-list>
+        ${listType === "value" ? "" : pickListGroupHtml}
         <calcite-${listType}-list-item value="remove-me" label="Remove me!" removable></calcite-${listType}-list-item>
       </calcite-${listType}-list>
     `
@@ -560,15 +543,19 @@ export function itemRemoval(listType: ListType): void {
     const removeItemSpy = await list.spyOnEvent("calciteListItemRemove");
     const listChangeSpy = await list.spyOnEvent("calciteListChange");
 
-    await page.$eval(
+    const removableItems = await page.$$eval(
       `calcite-${listType}-list-item`,
-      (item: ListElement, listType, selector: string) => {
-        listType === "pick"
-          ? item.shadowRoot.querySelector<HTMLElement>(selector).click()
-          : item.shadowRoot
-              .querySelector<ListElement>("calcite-pick-list-item")
-              .shadowRoot.querySelector<HTMLElement>(selector)
-              .click();
+      (items: ListElement[], listType, selector: string) => {
+        items.forEach((item) => {
+          listType === "pick"
+            ? item.shadowRoot.querySelector<HTMLElement>(selector).click()
+            : item.shadowRoot
+                .querySelector<ListElement>("calcite-pick-list-item")
+                .shadowRoot.querySelector<HTMLElement>(selector)
+                .click();
+        });
+
+        return items;
       },
       listType,
       `.${PICK_LIST_ITEM_CSS.remove}`
@@ -576,8 +563,9 @@ export function itemRemoval(listType: ListType): void {
 
     await page.waitForChanges();
 
-    expect(await page.find(`calcite-${listType}-list-item`)).toBeNull();
-    expect(removeItemSpy).toHaveReceivedEventTimes(1);
+    expect(await page.findAll(`calcite-${listType}-list-item`)).toHaveLength(0);
+    expect(await page.findAll(`calcite-pick-list-group`)).toHaveLength(listType === "pick" ? 1 : 0);
+    expect(removeItemSpy).toHaveReceivedEventTimes(removableItems.length);
     expect(listChangeSpy).toHaveReceivedEventTimes(1);
   });
 }
@@ -597,4 +585,18 @@ export function focusing(listType: ListType): void {
         }
       ));
   });
+}
+
+export function disabling(listType: ListType): void {
+  it("can be disabled", () =>
+    disabled(
+      html`
+      <calcite-${listType}-list>
+        <calcite-${listType}-list-item label="Sample" value="one"></calcite-${listType}-list-item>
+      </calcite-${listType}-list>
+    `,
+      {
+        focusTarget: "child"
+      }
+    ));
 }

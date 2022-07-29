@@ -1,10 +1,11 @@
 :host {
-  @apply block
-    cursor-pointer
-    outline-none
+  @apply text-color-3
+    block
     max-w-full
-    text-color-3;
+    cursor-pointer;
 }
+
+@include calciteHydratedHidden();
 
 :host([scale="s"]) {
   @apply text-n2h;
@@ -51,12 +52,12 @@
 :host([lines]) {
   .children-container:after {
     @apply transition-default
-        transition-colors
-        top-0
         absolute
-        w-px;
+        top-0
+        w-px
+        transition-colors;
     // ensure lines don't overlap focus outline
-    height: 96%;
+    block-size: 96%;
     content: "";
     background-color: var(--calcite-ui-border-2);
     z-index: -1;
@@ -68,7 +69,7 @@
 }
 
 ::slotted(*) {
-  @apply break-words min-w-0 max-w-full;
+  @apply min-w-0 max-w-full break-words;
   color: inherit;
   text-decoration: none !important;
 
@@ -85,20 +86,23 @@
   @apply focus-base;
 }
 :host(:focus) {
-  @apply focus-inset;
+  @apply focus-inset outline-none;
 }
 
 .checkbox {
-  @apply outline-none;
   line-height: 0;
 }
 
 .checkbox-label {
-  @apply flex items-center pointer-events-none;
+  @apply pointer-events-none flex items-center;
+}
+
+.checkbox:focus {
+  @apply outline-none;
 }
 
 .children-container {
-  @apply relative overflow-hidden h-0;
+  @apply relative h-0 overflow-hidden;
   margin-inline-start: theme("margin.5");
   transform: scaleY(0);
   opacity: 0;
@@ -109,13 +113,14 @@
   :host([expanded]) > & {
     transform: scaleY(1);
     opacity: 1;
-    height: auto;
+    block-size: auto;
   }
 }
 
 .node-container {
-  @apply flex items-center relative;
-  padding: var(--calcite-tree-padding-y) 0;
+  @apply relative flex items-center;
+  padding-block: var(--calcite-tree-padding-y);
+  padding-inline: 0;
 
   .checkmark,
   .bullet-point {
@@ -135,7 +140,7 @@
 
 :host([selected]) > .node-container,
 :host([selected]) > .node-container:hover {
-  @apply font-medium text-color-1;
+  @apply text-color-1 font-medium;
 
   .bullet-point,
   .checkmark {
@@ -174,7 +179,7 @@
 // dropdown expanded and not selected
 :host([has-children][expanded]:not([selected])) > .node-container {
   ::slotted(*) {
-    @apply font-medium text-color-1;
+    @apply text-color-1 font-medium;
   }
 }
 
@@ -188,9 +193,9 @@
 
 .chevron {
   @apply transition-default
+    text-color-3
     relative
-    self-center
-    text-color-3;
+    self-center;
   flex: 0 0 auto;
   transform: rotate(0deg);
 

@@ -1,10 +1,13 @@
 :host {
   @apply flex flex-wrap;
   ::slotted(calcite-tile-select) {
-    @apply mr-px mb-px;
+    @apply mb-px;
+    margin-inline-end: theme("spacing.px");
   }
 }
 
 :host([layout="vertical"]) {
   @apply flex-col;
 }
+
+@include disabled();

@@ -1,10 +1,10 @@
 :host {
-  @apply bg-transparent
+  @apply text-color-2
+    text-n1
+    mb-1
     box-border
     block
-    mb-1
-    text-color-2
-    text-n1;
+    bg-transparent;
 
   * {
     @apply box-border;
@@ -17,8 +17,8 @@
 
 @import "../../assets/styles/header";
 
-h3.heading {
-  @apply text-n1-wrap
+.heading {
+  @apply text-0h text-n1-wrap
     text-color-3
     my-2
     mx-4;

@@ -3,26 +3,26 @@ import {
   Element,
   Event,
   EventEmitter,
-  Prop,
-  h,
-  VNode,
-  Method,
   Fragment,
+  h,
+  Method,
+  Prop,
+  VNode,
   Watch
 } from "@stencil/core";
-import { debounce, forIn } from "lodash-es";
-import { CSS, ICONS, TEXT } from "./resources";
+import { debounce } from "lodash-es";
+import { CSS, DEBOUNCE_TIMEOUT, ICONS, TEXT } from "./resources";
 import { Scale } from "../interfaces";
 import { focusElement } from "../../utils/dom";
-
-const filterDebounceInMs = 250;
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
+import { filter } from "../../utils/filter";
 
 @Component({
   tag: "calcite-filter",
   styleUrl: "filter.scss",
   shadow: true
 })
-export class Filter {
+export class Filter implements InteractiveComponent {
   // --------------------------------------------------------------------------
   //
   //  Properties
@@ -35,7 +35,7 @@ export class Filter {
    *
    * This property is required.
    */
-  @Prop({ mutable: true }) items!: object[];
+  @Prop({ mutable: true }) items: object[] = [];
 
   @Watch("items")
   watchItemsHandler(): void {
@@ -75,7 +75,7 @@ export class Filter {
   /**
    * Filter value.
    */
-  @Prop({ mutable: true }) value?: string;
+  @Prop({ mutable: true }) value = "";
 
   @Watch("value")
   valueHandler(value: string): void {
@@ -92,6 +92,16 @@ export class Filter {
 
   textInput: HTMLCalciteInputElement;
 
+  //--------------------------------------------------------------------------
+  //
+  //  Lifecycle
+  //
+  //--------------------------------------------------------------------------
+
+  componentDidRender(): void {
+    updateHostInteraction(this);
+  }
+
   // --------------------------------------------------------------------------
   //
   //  Events
@@ -102,6 +112,16 @@ export class Filter {
    * This event fires when the filter text changes.
    */
   @Event() calciteFilterChange: EventEmitter<void>;
+
+  //--------------------------------------------------------------------------
+  //
+  //  Lifecycle
+  //
+  //--------------------------------------------------------------------------
+
+  componentWillLoad(): void {
+    this.filter(this.value);
+  }
 
   // --------------------------------------------------------------------------
   //
@@ -121,59 +141,39 @@ export class Filter {
   //
   // --------------------------------------------------------------------------
 
-  filter = debounce((value: string): void => {
-    const regex = new RegExp(value, "i");
-
-    if (this.items.length === 0) {
-      this.updateFiltered([]);
-      return;
-    }
-
-    const find = (input: object, RE: RegExp): any => {
-      let found = false;
-      forIn(input, (val) => {
-        if (typeof val === "function") {
-          return;
-        }
-        if (Array.isArray(val) || (typeof val === "object" && val !== null)) {
-          if (find(val, RE)) {
-            found = true;
-          }
-        } else if (RE.test(val)) {
-          found = true;
-        }
-      });
-
-      return found;
-    };
-
-    const result = this.items.filter((item) => {
-      return find(item, regex);
-    });
-
-    this.updateFiltered(result);
-  }, filterDebounceInMs);
+  filter = debounce(
+    (value: string, emit = false): void => this.updateFiltered(filter(this.items, value), emit),
+    DEBOUNCE_TIMEOUT
+  );
 
   inputHandler = (event: CustomEvent): void => {
     const target = event.target as HTMLCalciteInputElement;
     this.value = target.value;
+    this.filter(target.value, true);
   };
 
-  keyDownHandler = ({ key }: KeyboardEvent): void => {
-    if (key === "Escape") {
+  keyDownHandler = (event: KeyboardEvent): void => {
+    if (event.key === "Escape") {
       this.clear();
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
     }
   };
 
   clear = (): void => {
     this.value = "";
+    this.filter("", true);
     this.setFocus();
   };
 
-  updateFiltered(filtered: any[]): void {
+  updateFiltered(filtered: any[], emit = false): void {
     this.filteredItems.length = 0;
     this.filteredItems = this.filteredItems.concat(filtered);
-    this.calciteFilterChange.emit();
+    if (emit) {
+      this.calciteFilterChange.emit();
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -187,13 +187,14 @@ export class Filter {
 
     return (
       <Fragment>
-        {disabled ? <calcite-scrim /> : null}
         <div class={CSS.container}>
           <label>
             <calcite-input
               aria-label={this.intlLabel || TEXT.filterLabel}
-              disabled={this.disabled}
+              clearable={true}
+              disabled={disabled}
               icon={ICONS.search}
+              intlClear={this.intlClear || TEXT.clear}
               onCalciteInputInput={this.inputHandler}
               onKeyDown={this.keyDownHandler}
               placeholder={this.placeholder}
@@ -205,15 +206,6 @@ export class Filter {
               value={this.value}
             />
           </label>
-          {this.value ? (
-            <button
-              aria-label={this.intlClear || TEXT.clear}
-              class={CSS.clearButton}
-              onClick={this.clear}
-            >
-              <calcite-icon icon={ICONS.close} scale={scale} />
-            </button>
-          ) : null}
         </div>
       </Fragment>
     );

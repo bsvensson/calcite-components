@@ -1,26 +1,33 @@
 :host {
-  @apply block flex-initial outline-none mr-5;
+  @apply block flex-initial outline-none;
   margin-inline-start: theme("margin.0");
   margin-inline-end: theme("margin.5");
 }
 
 :host([layout="center"]) {
-  @apply text-center my-0 mx-5;
+  @apply my-0 mx-5 text-center;
   flex-basis: theme("spacing.48");
 }
 
-:host([position="below"]) a {
-  @apply border-b-0
-    border-t-2
-    border-t-color-transparent;
-  border-top-style: solid;
+:host([position="below"]) .container {
+  @apply border-t-color-transparent
+    border-b-0
+    border-t-2;
+  border-block-start-style: solid;
 }
 
-:host a {
+:host([position="bottom"]) .container {
+  @apply border-t-color-transparent
+    border-b-0
+    border-t-2;
+  border-block-start-style: solid;
+}
+
+:host .container {
   @apply focus-base;
 }
 
-:host(:focus) a {
+:host(:focus) .container {
   @apply focus-inset;
 }
 
@@ -28,73 +35,63 @@
 :host(:focus),
 :host(:hover) {
   a {
-    @apply no-underline text-color-1 border-color-2;
+    @apply text-color-1 border-color-2 no-underline;
   }
 }
 
-:host([active]) a {
+:host([active]) .container {
   @apply text-color-1 border-color-transparent;
 }
 
-:host([disabled]) {
-  @apply pointer-events-none;
-  span,
-  a {
+@include disabled() {
+  .container {
     @apply pointer-events-none opacity-50;
   }
 }
 
 :host([scale="s"]) {
   margin-inline-end: 1rem;
-  a,
-  span {
+  .container {
     @apply text-n2h py-1;
   }
 }
 
 :host([scale="m"]) {
-  a,
-  span {
+  .container {
     @apply text-n1h py-2;
   }
 }
 
 :host([scale="l"]) {
   margin-inline-end: 1.5rem;
-  a,
-  span {
+  .container {
     @apply text-0h py-3;
   }
 }
 
-a,
-span {
-  @apply box-border
-    appearance-none
-    cursor-pointer
-    truncate
-    border-b-2
-    border-b-color-transparent
-    w-full
-    h-full
-    flex
-    justify-center
+.container {
+  @apply border-b-color-transparent
     text-color-3
     text-n1h
     transition-default
+    box-border
+    flex
+    h-full
+    w-full
+    cursor-pointer
+    appearance-none
+    justify-center
+    truncate
+    border-b-2
     px-0
     py-2;
-  border-bottom-style: solid;
-}
-
-span {
-  @apply cursor-default;
+  border-block-end-style: solid;
 }
 
 .calcite-tab-title--icon {
-  @apply inline-flex
-    relative
+  @apply relative
     m-0
+    inline-flex
     self-center;
   & svg {
     @apply transition-default;
@@ -133,51 +130,92 @@ span {
   box-shadow: inset 0 2px 0 var(--calcite-ui-foreground-1);
 }
 
+:host([bordered][active][position="bottom"]) {
+  box-shadow: inset 0 2px 0 var(--calcite-ui-foreground-1);
+}
+
 :host([bordered]:hover),
 :host([bordered]:focus),
 :host([bordered]:active) {
-  a {
+  .container {
     @apply relative;
   }
 }
 
 :host([bordered]:hover) {
-  a {
+  .container {
     background-color: var(--calcite-button-transparent-hover);
-    @apply transition-default;
   }
 }
 
-:host([bordered]) a {
-  border-bottom-style: unset;
+:host([bordered]) .container {
+  border-block-end-style: unset;
+  border-inline-start: 1px solid transparent;
+  border-inline-end: 1px solid transparent;
 }
 
-:host([bordered][position="below"]) a {
-  border-top-style: unset;
+:host([bordered][position="below"]) .container {
+  border-block-start-style: unset;
 }
 
-:host([active][bordered]) a {
-  border-left: 1px solid var(--calcite-ui-border-1);
-  border-right: 1px solid var(--calcite-ui-border-1);
+:host([bordered][position="bottom"]) .container {
+  border-block-start-style: unset;
+}
+
+:host([active][bordered]) .container {
+  border-inline-start-color: var(--calcite-ui-border-1);
+  border-inline-end-color: var(--calcite-ui-border-1);
 }
 
 :host([bordered]) {
-  a,
-  span {
-    @apply pl-3 pr-3;
+  .container {
+    @apply px-3;
   }
 }
 
 :host([bordered][scale="s"]) {
-  a,
-  span {
-    @apply pl-2 pr-2;
+  .container {
+    @apply px-2;
   }
 }
 
 :host([bordered][scale="l"]) {
-  a,
-  span {
-    @apply pl-4 pr-4;
+  .container {
+    @apply px-4;
+  }
+}
+
+@media (forced-colors: active) {
+  :host {
+    outline-width: 0;
+    outline-offset: 0;
+  }
+
+  :host(:focus) .container {
+    outline-color: highlight;
+  }
+
+  :host([bordered]) .container {
+    border-block-end-style: solid;
+  }
+
+  :host([bordered][position="below"]) .container {
+    border-block-start-style: solid;
+  }
+
+  :host([bordered][position="bottom"]) .container {
+    border-block-start-style: solid;
+  }
+
+  :host([bordered][active]) .container {
+    border-block-end-style: none;
+  }
+
+  :host([bordered][position="below"][active]) .container {
+    border-block-start-style: none;
+  }
+
+  :host([bordered][position="bottom"][active]) .container {
+    border-block-start-style: none;
   }
 }

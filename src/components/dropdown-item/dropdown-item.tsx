@@ -10,12 +10,12 @@ import {
   Prop,
   VNode
 } from "@stencil/core";
-import { getElementProp } from "../../utils/dom";
+import { getElementProp, toAriaBoolean } from "../../utils/dom";
 import { ItemKeyboardEvent } from "../dropdown/interfaces";
 
 import { FlipContext } from "../interfaces";
 import { CSS } from "./resources";
-import { SelectionMode } from "../dropdown-group/interfaces";
+import { RequestedItem, SelectionMode } from "../dropdown-group/interfaces";
 
 /**
  * @slot - A slot for adding text.
@@ -73,13 +73,13 @@ export class DropdownItem {
   /**
    * @internal
    */
-  @Event() calciteDropdownItemSelect: EventEmitter;
+  @Event() calciteInternalDropdownItemSelect: EventEmitter<RequestedItem>;
 
   /** @internal */
-  @Event() calciteDropdownItemKeyEvent: EventEmitter<ItemKeyboardEvent>;
+  @Event() calciteInternalDropdownItemKeyEvent: EventEmitter<ItemKeyboardEvent>;
 
   /** @internal */
-  @Event() calciteDropdownCloseRequest: EventEmitter;
+  @Event() calciteInternalDropdownCloseRequest: EventEmitter<void>;
   //--------------------------------------------------------------------------
   //
   //  Public Methods
@@ -89,7 +89,7 @@ export class DropdownItem {
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
-    this.el.focus();
+    this.el?.focus();
   }
 
   //--------------------------------------------------------------------------
@@ -98,12 +98,12 @@ export class DropdownItem {
   //
   //--------------------------------------------------------------------------
 
+  componentWillLoad(): void {
+    this.initialize();
+  }
+
   connectedCallback(): void {
-    this.selectionMode = getElementProp(this.el, "selection-mode", "single");
-    this.parentDropdownGroupEl = this.el.closest("calcite-dropdown-group");
-    if (this.selectionMode === "none") {
-      this.active = false;
-    }
+    this.initialize();
   }
 
   render(): VNode {
@@ -162,7 +162,7 @@ export class DropdownItem {
       ? "menuitemcheckbox"
       : "menuitem";
 
-    const itemAria = this.selectionMode !== "none" ? this.active.toString() : null;
+    const itemAria = this.selectionMode !== "none" ? toAriaBoolean(this.active) : null;
 
     return (
       <Host aria-checked={itemAria} role={itemRole} tabindex="0">
@@ -201,36 +201,35 @@ export class DropdownItem {
     this.emitRequestedItem();
   }
 
-  @Listen("keydown") keyDownHandler(e: KeyboardEvent): void {
-    switch (e.key) {
+  @Listen("keydown")
+  keyDownHandler(event: KeyboardEvent): void {
+    switch (event.key) {
       case " ":
-        this.emitRequestedItem();
-        if (this.href) {
-          e.preventDefault();
-          this.childLink.click();
-        }
-        break;
       case "Enter":
         this.emitRequestedItem();
         if (this.href) {
           this.childLink.click();
         }
+        event.preventDefault();
         break;
       case "Escape":
-        this.calciteDropdownCloseRequest.emit();
+        this.calciteInternalDropdownCloseRequest.emit();
+        event.preventDefault();
         break;
       case "Tab":
+        this.calciteInternalDropdownItemKeyEvent.emit({ keyboardEvent: event });
+        break;
       case "ArrowUp":
       case "ArrowDown":
       case "Home":
       case "End":
-        this.calciteDropdownItemKeyEvent.emit({ keyboardEvent: e });
+        event.preventDefault();
+        this.calciteInternalDropdownItemKeyEvent.emit({ keyboardEvent: event });
         break;
     }
-    e.preventDefault();
   }
 
-  @Listen("calciteDropdownItemChange", { target: "body" })
+  @Listen("calciteInternalDropdownItemChange", { target: "body" })
   updateActiveItemOnChange(event: CustomEvent): void {
     const parentEmittedChange = event.composedPath().includes(this.parentDropdownGroupEl);
 
@@ -239,6 +238,7 @@ export class DropdownItem {
       this.requestedDropdownItem = event.detail.requestedDropdownItem;
       this.determineActiveItem();
     }
+    event.stopPropagation();
   }
 
   //--------------------------------------------------------------------------
@@ -268,6 +268,14 @@ export class DropdownItem {
   //
   //--------------------------------------------------------------------------
 
+  private initialize(): void {
+    this.selectionMode = getElementProp(this.el, "selection-mode", "single");
+    this.parentDropdownGroupEl = this.el.closest("calcite-dropdown-group");
+    if (this.selectionMode === "none") {
+      this.active = false;
+    }
+  }
+
   private determineActiveItem(): void {
     switch (this.selectionMode) {
       case "multi":
@@ -291,7 +299,7 @@ export class DropdownItem {
   }
 
   private emitRequestedItem(): void {
-    this.calciteDropdownItemSelect.emit({
+    this.calciteInternalDropdownItemSelect.emit({
       requestedDropdownItem: this.el,
       requestedDropdownGroup: this.parentDropdownGroupEl
     });

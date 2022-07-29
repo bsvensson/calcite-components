@@ -1,8 +1,13 @@
 export const ComboboxItem = "CALCITE-COMBOBOX-ITEM";
 export const ComboboxItemGroup = "CALCITE-COMBOBOX-ITEM-GROUP";
 export const ComboboxChildSelector = `${ComboboxItem}, ${ComboboxItemGroup}`;
-export const ComboboxDefaultPlacement = "bottom-leading";
 
 export const TEXT = {
   removeTag: "Remove tag"
+};
+
+export const CSS = {
+  labelActive: "label--active",
+  labelSelected: "label--selected",
+  listContainer: "list-container"
 };

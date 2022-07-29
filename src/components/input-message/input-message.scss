@@ -12,23 +12,25 @@
 }
 
 :host {
-  @apply flex items-center w-full box-border text-color-1 font-medium invisible h-0 pointer-events-none opacity-0 transition-default;
+  @apply text-color-1 transition-default invisible box-border flex h-0 w-full items-center font-medium opacity-0;
 }
 
 :host([active]) {
-  @apply h-auto visible opacity-100 transition-default;
+  @apply transition-default visible h-auto opacity-100;
 }
 
 :host([active][scale="m"]),
 :host([active][scale="l"]) {
-  margin-top: var(--calcite-input-message-spacing-value);
+  margin-block-start: var(--calcite-input-message-spacing-value);
 }
 
+@include calciteHydratedHidden();
+
 .calcite-input-message-icon {
-  @apply inline-flex
-    flex-shrink-0
+  @apply transition-default
     pointer-events-none
-    transition-default;
+    inline-flex
+    flex-shrink-0;
   margin-inline-end: theme("margin.2");
 }
 
@@ -50,19 +52,17 @@
 
 // Validation Text
 :host([status][active]) {
-  @apply text-color-1
-    font-medium;
+  @apply text-color-1;
 }
 
-:host([status][active][scale="s"]) {
+:host([status][scale="s"]) {
   @apply text-n3h;
 }
 
-:host([status][active][scale="m"]) {
-  @apply text-n2h
-    mt-1;
+:host([status][scale="m"]) {
+  @apply text-n2h mt-1;
 }
 
-:host([status][active][scale="l"]) {
+:host([status][scale="l"]) {
   @apply text-n1h mt-1;
 }

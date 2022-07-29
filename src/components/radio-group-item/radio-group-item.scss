@@ -1,20 +1,20 @@
 :host {
   @apply flex
-    self-stretch
     cursor-pointer
+    self-stretch
     font-normal;
   transition: background-color var(--calcite-internal-animation-timing-fast) ease-in-out,
     border-color var(--calcite-animation-timing) ease-in-out;
 }
 
 :host label {
-  @apply flex
-    flex-1
-    text-color-3
-    box-border
+  @apply text-color-3
     pointer-events-none
-    items-center
-    m-0.5;
+    m-0.5
+    box-border
+    flex
+    flex-1
+    items-center;
   transition: background-color var(--calcite-internal-animation-timing-fast) ease-in-out,
     border-color var(--calcite-internal-animation-timing-fast) ease-in-out,
     color var(--calcite-internal-animation-timing-fast) ease-in-out;
@@ -35,14 +35,12 @@
 
 .label--scale-s {
   @apply text-n2h px-2;
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
+  padding-block: 0.125rem;
 }
 
 .label--scale-m {
   @apply text-n1h px-3;
-  padding-top: 0.375rem;
-  padding-bottom: 0.375rem;
+  padding-block: 0.375rem;
 }
 
 .label--scale-l {
@@ -72,11 +70,23 @@
   @apply hidden;
 }
 
+@media (forced-colors: active) {
+  :host([checked]) label {
+    background-color: highlight;
+  }
+  :host([checked]) .label--outline {
+    @apply outline-none;
+  }
+  :host([checked]) label:not([class~="label--outline"]) .radio-group-item-icon {
+    color: highlightText;
+  }
+}
+
 // icon
 .radio-group-item-icon {
-  @apply inline-flex
-    relative
-    m-0;
+  @apply relative
+    m-0
+    inline-flex;
   line-height: inherit;
 }
 

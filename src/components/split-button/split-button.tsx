@@ -1,8 +1,9 @@
-import { Component, Element, Event, EventEmitter, h, Prop, VNode } from "@stencil/core";
+import { Component, Element, Event, EventEmitter, h, Prop, VNode, Watch } from "@stencil/core";
 import { CSS } from "./resources";
 import { ButtonAppearance, ButtonColor, DropdownIconType } from "../button/interfaces";
-import { FlipContext, Scale, Width } from "../interfaces";
-import { OverlayPositioning } from "../../utils/popper";
+import { DeprecatedEventPayload, FlipContext, Scale, Width } from "../interfaces";
+import { OverlayPositioning } from "../../utils/floating-ui";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 
 /**
  * @slot - A slot for adding `calcite-dropdown` content.
@@ -12,7 +13,7 @@ import { OverlayPositioning } from "../../utils/popper";
   styleUrl: "split-button.scss",
   shadow: true
 })
-export class SplitButton {
+export class SplitButton implements InteractiveComponent {
   @Element() el: HTMLCalciteSplitButtonElement;
 
   /** specify the appearance style of the button, defaults to solid. */
@@ -24,11 +25,26 @@ export class SplitButton {
   /** is the control disabled  */
   @Prop({ reflect: true }) disabled = false;
 
+  @Watch("disabled")
+  handleDisabledChange(value: boolean): void {
+    if (!value) {
+      this.active = false;
+    }
+  }
+
   /**
    * Is the dropdown currently active or not
+   *
    * @internal
    */
-  @Prop({ reflect: true }) active = false;
+  @Prop({ mutable: true, reflect: true }) active = false;
+
+  @Watch("active")
+  activeHandler(): void {
+    if (this.disabled) {
+      this.active = false;
+    }
+  }
 
   /** specify the icon used for the dropdown menu, defaults to chevron */
   @Prop({ reflect: true }) dropdownIconType: DropdownIconType = "chevron";
@@ -36,8 +52,10 @@ export class SplitButton {
   /** aria label for overflow button */
   @Prop({ reflect: true }) dropdownLabel?: string;
 
-  /** optionally add a calcite-loader component to the control,
-   disabling interaction. with the primary button */
+  /**
+    optionally add a calcite-loader component to the control,
+   disabling interaction. with the primary button
+   */
   @Prop({ reflect: true }) loading = false;
 
   /** Describes the type of positioning to use for the dropdown. If your element is in a fixed container, use the 'fixed' value. */
@@ -64,11 +82,29 @@ export class SplitButton {
   /** specify the width of the button, defaults to auto */
   @Prop({ reflect: true }) width: Width = "auto";
 
-  /** fired when the primary button is clicked */
-  @Event() calciteSplitButtonPrimaryClick: EventEmitter;
+  /**
+   * fired when the primary button is clicked
+   *
+   * **Note:** The event payload is deprecated, please use separate mouse event listeners to get info about click.
+   */
+  @Event() calciteSplitButtonPrimaryClick: EventEmitter<DeprecatedEventPayload>;
 
-  /** fired when the secondary button is clicked */
-  @Event() calciteSplitButtonSecondaryClick: EventEmitter;
+  /**
+   * fired when the secondary button is clicked
+   *
+   * **Note:** The event payload is deprecated, please use separate mouse event listeners to get info about click.
+   */
+  @Event() calciteSplitButtonSecondaryClick: EventEmitter<DeprecatedEventPayload>;
+
+  //--------------------------------------------------------------------------
+  //
+  //  Lifecycle
+  //
+  //--------------------------------------------------------------------------
+
+  componentDidRender(): void {
+    updateHostInteraction(this);
+  }
 
   render(): VNode {
     const widthClasses = {
@@ -103,9 +139,10 @@ export class SplitButton {
         </div>
         <calcite-dropdown
           active={this.active}
+          disabled={this.disabled}
           onClick={this.calciteSplitButtonSecondaryClickHandler}
           overlayPositioning={this.overlayPositioning}
-          placement="bottom-trailing"
+          placement="bottom-end"
           scale={this.scale}
           width={this.scale}
         >
@@ -126,11 +163,11 @@ export class SplitButton {
     );
   }
 
-  private calciteSplitButtonPrimaryClickHandler = (e: MouseEvent): CustomEvent =>
-    this.calciteSplitButtonPrimaryClick.emit(e);
+  private calciteSplitButtonPrimaryClickHandler = (event: MouseEvent): CustomEvent =>
+    this.calciteSplitButtonPrimaryClick.emit(event);
 
-  private calciteSplitButtonSecondaryClickHandler = (e: MouseEvent): CustomEvent =>
-    this.calciteSplitButtonSecondaryClick.emit(e);
+  private calciteSplitButtonSecondaryClickHandler = (event: MouseEvent): CustomEvent =>
+    this.calciteSplitButtonSecondaryClick.emit(event);
 
   private get dropdownIcon(): string {
     return this.dropdownIconType === "chevron"

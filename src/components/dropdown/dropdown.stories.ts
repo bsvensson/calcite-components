@@ -1,24 +1,11 @@
 import { number, select } from "@storybook/addon-knobs";
 import { boolean, createSteps, stepStory } from "../../../.storybook/helpers";
 import { themesDarkDefault } from "../../../.storybook/utils";
-import { DefaultDropdownPlacement } from "./resources";
 import readme1 from "./readme.md";
 import readme2 from "../dropdown-group/readme.md";
 import readme3 from "../dropdown-item/readme.md";
-import { html } from "../../tests/utils";
-
-const placements = [
-  "top-start",
-  "top",
-  "top-end",
-  "bottom-start",
-  "bottom",
-  "bottom-end",
-  "top-leading",
-  "top-trailing",
-  "bottom-leading",
-  "bottom-trailing"
-];
+import { defaultMenuPlacement, menuPlacements } from "../../utils/floating-ui";
+import { html } from "../../../support/formatting";
 
 export default {
   title: "Components/Buttons/Dropdown",
@@ -30,8 +17,8 @@ export default {
 
 export const Simple = (): string => html`
   <calcite-dropdown
-    active
-    placement="${select("placement", placements, DefaultDropdownPlacement)}"
+    open
+    placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
     scale="${select("scale", ["s", "m", "l"], "m")}"
     width="${select("width", ["s", "m", "l"], "m")}"
     type="${select("type", ["click", "hover"], "click")}"
@@ -50,10 +37,56 @@ export const Simple = (): string => html`
   </calcite-dropdown>
 `;
 
+export const SimpleAutoWidth = (): string => html`
+  <calcite-dropdown
+    open
+    placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
+    scale="${select("scale", ["s", "m", "l"], "m")}"
+    type="${select("type", ["click", "hover"], "click")}"
+    ${boolean("disable-close-on-select", false)}
+    ${boolean("disabled", false)}
+  >
+    <calcite-button slot="dropdown-trigger">Open Dropdown</calcite-button>
+    <calcite-dropdown-group
+      selection-mode="${select("group selection mode", ["single", "multi", "none"], "single")}"
+      group-title="Sort by"
+    >
+      <calcite-dropdown-item>Relevance</calcite-dropdown-item>
+      <calcite-dropdown-item active>Date</calcite-dropdown-item>
+      <calcite-dropdown-item>Title</calcite-dropdown-item>
+    </calcite-dropdown-group>
+  </calcite-dropdown>
+`;
+
+export const SimpleFullWidth = (): string => html`
+  <div style="width: 500px;">
+    <calcite-dropdown
+      style="width:100%"
+      open
+      placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
+      scale="${select("scale", ["s", "m", "l"], "m")}"
+      width="${select("width", ["s", "m", "l"], "m")}"
+      type="${select("type", ["click", "hover"], "click")}"
+      ${boolean("disable-close-on-select", false)}
+      ${boolean("disabled", false)}
+    >
+      <calcite-button width="full" slot="dropdown-trigger">Open Dropdown</calcite-button>
+      <calcite-dropdown-group
+        selection-mode="${select("group selection mode", ["single", "multi", "none"], "single")}"
+        group-title="Sort by"
+      >
+        <calcite-dropdown-item>Relevance</calcite-dropdown-item>
+        <calcite-dropdown-item active>Date modified</calcite-dropdown-item>
+        <calcite-dropdown-item>Title</calcite-dropdown-item>
+      </calcite-dropdown-group>
+    </calcite-dropdown>
+  </div>
+`;
+
 export const WithIcons = (): string => html`
   <calcite-dropdown
-    active
-    placement="${select("placement", placements, DefaultDropdownPlacement)}"
+    open
+    placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
     scale="${select("scale", ["s", "m", "l"], "m")}"
     width="${select("width", ["s", "m", "l"], "m")}"
     type="${select("type", ["click", "hover"], "click")}"
@@ -90,8 +123,8 @@ export const WithIcons = (): string => html`
 
 export const GroupsAndSelectionModes = (): string => html`
   <calcite-dropdown
-    active
-    placement="${select("placement", placements, DefaultDropdownPlacement)}"
+    open
+    placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
     scale="${select("scale", ["s", "m", "l"], "m")}"
     width="${select("width", ["s", "m", "l"], "m")}"
     type="${select("type", ["click", "hover"], "click")}"
@@ -120,8 +153,8 @@ GroupsAndSelectionModes.storyName = "Groups and selection modes";
 
 export const ItemsAsLinks = (): string => html`
   <calcite-dropdown
-    active
-    placement="${select("placement", placements, DefaultDropdownPlacement)}"
+    open
+    placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
     scale="${select("scale", ["s", "m", "l"], "m")}"
     width="${select("width", ["s", "m", "l"], "m")}"
     type="${select("type", ["click", "hover"], "click")}"
@@ -153,8 +186,8 @@ ItemsAsLinks.storyName = "Items as Links";
 
 export const AMixOfLinksAndNonLinks = (): string => html`
   <calcite-dropdown
-    active
-    placement="${select("placement", placements, DefaultDropdownPlacement)}"
+    open
+    placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
     scale="${select("scale", ["s", "m", "l"], "m")}"
     width="${select("width", ["s", "m", "l"], "m")}"
     type="${select("type", ["click", "hover"], "click")}"
@@ -180,9 +213,9 @@ AMixOfLinksAndNonLinks.storyName = "A mix of links and non-links";
 
 export const DarkTheme = (): string => html`
   <calcite-dropdown
-    active
+    open
     class="calcite-theme-dark"
-    placement="${select("placement", placements, DefaultDropdownPlacement)}"
+    placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
     scale="${select("scale", ["s", "m", "l"], "m")}"
     width="${select("width", ["s", "m", "l"], "m")}"
     type="${select("type", ["click", "hover"], "click")}"
@@ -206,9 +239,9 @@ DarkTheme.parameters = { themes: themesDarkDefault };
 
 export const WithIconsDarkTheme = (): string => html`
   <calcite-dropdown
-    active
+    open
     class="calcite-theme-dark"
-    placement="${select("placement", placements, DefaultDropdownPlacement)}"
+    placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
     scale="${select("scale", ["s", "m", "l"], "m")}"
     width="${select("width", ["s", "m", "l"], "m")}"
     type="${select("type", ["click", "hover"], "click")}"
@@ -248,9 +281,9 @@ WithIconsDarkTheme.parameters = { themes: themesDarkDefault };
 
 export const GroupsAndSelectionModesDarkTheme = (): string => html`
   <calcite-dropdown
-    active
+    open
     class="calcite-theme-dark"
-    placement="${select("placement", placements, DefaultDropdownPlacement)}"
+    placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
     scale="${select("scale", ["s", "m", "l"], "m")}"
     type="${select("type", ["click", "hover"], "click")}"
     ${boolean("disable-close-on-select", false)}
@@ -279,9 +312,9 @@ GroupsAndSelectionModesDarkTheme.parameters = { themes: themesDarkDefault };
 
 export const ItemsAsLinksDarkTheme = (): string => html`
   <calcite-dropdown
-    active
+    open
     class="calcite-theme-dark"
-    placement="${select("placement", placements, DefaultDropdownPlacement)}"
+    placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
     scale="${select("scale", ["s", "m", "l"], "m")}"
     width="${select("width", ["s", "m", "l"], "m")}"
     type="${select("type", ["click", "hover"], "click")}"
@@ -314,9 +347,9 @@ ItemsAsLinksDarkTheme.parameters = { themes: themesDarkDefault };
 
 export const SimpleRtl = (): string => html`
   <calcite-dropdown
-    active
+    open
     dir="rtl"
-    placement="${select("placement", placements, DefaultDropdownPlacement)}"
+    placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
     scale="${select("scale", ["s", "m", "l"], "m")}"
     width="${select("width", ["s", "m", "l"], "m")}"
     type="${select("type", ["click", "hover"], "click")}"
@@ -339,8 +372,8 @@ SimpleRtl.storyName = "Simple - RTL";
 
 export const ScrollingAfterCertainItems = (): string => html`
   <calcite-dropdown
-    active
-    placement="${select("placement", placements, DefaultDropdownPlacement)}"
+    open
+    placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
     max-items="${number("max-items", 7, { min: 0, max: 10, step: 1 })}"
     scale="${select("scale", ["s", "m", "l"], "m")}"
     width="${select("width", ["s", "m", "l"], "m")}"
@@ -368,16 +401,46 @@ export const ScrollingAfterCertainItems = (): string => html`
 
 ScrollingAfterCertainItems.storyName = "Scrolling after certain items";
 
+export const ScrollingWithoutMaxItems = (): string => html`
+  <calcite-dropdown open>
+    <calcite-button slot="dropdown-trigger">Open Dropdown</calcite-button>
+    <calcite-dropdown-group
+      selection-mode="${select("group selection mode", ["single", "multi", "none"], "single")}"
+      group-title="Sort by"
+    >
+      <calcite-dropdown-item>Relevance</calcite-dropdown-item>
+      <calcite-dropdown-item active>Date modified</calcite-dropdown-item>
+      <calcite-dropdown-item>Title</calcite-dropdown-item>
+    </calcite-dropdown-group>
+    <calcite-dropdown-group group-title="First group">
+      <calcite-dropdown-item>1</calcite-dropdown-item>
+      <calcite-dropdown-item>2</calcite-dropdown-item>
+      <calcite-dropdown-item>3</calcite-dropdown-item>
+      <calcite-dropdown-item>4</calcite-dropdown-item>
+      <calcite-dropdown-item>5</calcite-dropdown-item>
+    </calcite-dropdown-group>
+    <calcite-dropdown-group group-title="Second group">
+      <calcite-dropdown-item>6</calcite-dropdown-item>
+      <calcite-dropdown-item>7</calcite-dropdown-item>
+      <calcite-dropdown-item>8</calcite-dropdown-item>
+      <calcite-dropdown-item>9</calcite-dropdown-item>
+      <calcite-dropdown-item>10</calcite-dropdown-item>
+    </calcite-dropdown-group>
+  </calcite-dropdown>
+`;
+
 export const FlipPositioning = stepStory(
   (): string => html`
     <div style="margin:10px;">
-      <calcite-dropdown placement="${select("placement", placements, "top")}">
+      <calcite-dropdown width="m" placement="${select("placement", menuPlacements, "top")}">
         <calcite-button slot="dropdown-trigger">Open Dropdown</calcite-button>
-        <calcite-dropdown-item>1</calcite-dropdown-item>
-        <calcite-dropdown-item>2</calcite-dropdown-item>
-        <calcite-dropdown-item>3</calcite-dropdown-item>
-        <calcite-dropdown-item>4</calcite-dropdown-item>
-        <calcite-dropdown-item>5</calcite-dropdown-item>
+        <calcite-dropdown-group>
+          <calcite-dropdown-item>1</calcite-dropdown-item>
+          <calcite-dropdown-item>2</calcite-dropdown-item>
+          <calcite-dropdown-item>3</calcite-dropdown-item>
+          <calcite-dropdown-item>4</calcite-dropdown-item>
+          <calcite-dropdown-item>5</calcite-dropdown-item>
+        </calcite-dropdown-group>
       </calcite-dropdown>
     </div>
   `,
@@ -386,3 +449,69 @@ export const FlipPositioning = stepStory(
 FlipPositioning.parameters = {
   layout: "fullscreen"
 };
+
+export const disabled = (): string => html` <calcite-dropdown disabled>
+  <calcite-button slot="dropdown-trigger">Open Dropdown</calcite-button>
+  <calcite-dropdown-group group-title="First group">
+    <calcite-dropdown-item>1</calcite-dropdown-item>
+    <calcite-dropdown-item>2</calcite-dropdown-item>
+    <calcite-dropdown-item>3</calcite-dropdown-item>
+    <calcite-dropdown-item>4</calcite-dropdown-item>
+    <calcite-dropdown-item>5</calcite-dropdown-item>
+  </calcite-dropdown-group>
+  <calcite-dropdown-group group-title="Second group">
+    <calcite-dropdown-item>6</calcite-dropdown-item>
+    <calcite-dropdown-item>7</calcite-dropdown-item>
+    <calcite-dropdown-item>8</calcite-dropdown-item>
+    <calcite-dropdown-item>9</calcite-dropdown-item>
+    <calcite-dropdown-item>10</calcite-dropdown-item>
+  </calcite-dropdown-group>
+</calcite-dropdown>`;
+
+export const AlignedCenter = (): string => html`
+  <div style="text-align:center">
+    <calcite-dropdown
+      open
+      placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
+      scale="${select("scale", ["s", "m", "l"], "m")}"
+      width="${select("width", ["s", "m", "l"], "m")}"
+      type="${select("type", ["click", "hover"], "click")}"
+      ${boolean("disable-close-on-select", false)}
+      ${boolean("disabled", false)}
+    >
+      <calcite-button slot="dropdown-trigger">Open Dropdown</calcite-button>
+      <calcite-dropdown-group
+        selection-mode="${select("group selection mode", ["single", "multi", "none"], "single")}"
+        group-title="Sort by"
+      >
+        <calcite-dropdown-item>Relevance</calcite-dropdown-item>
+        <calcite-dropdown-item active>Date modified</calcite-dropdown-item>
+        <calcite-dropdown-item>Title</calcite-dropdown-item>
+      </calcite-dropdown-group>
+    </calcite-dropdown>
+  </div>
+`;
+
+export const AlignedCenterRTL = (): string => html`
+  <div dir="rtl" style="text-align:center">
+    <calcite-dropdown
+      open
+      placement="${select("placement", menuPlacements, defaultMenuPlacement)}"
+      scale="${select("scale", ["s", "m", "l"], "m")}"
+      width="${select("width", ["s", "m", "l"], "m")}"
+      type="${select("type", ["click", "hover"], "click")}"
+      ${boolean("disable-close-on-select", false)}
+      ${boolean("disabled", false)}
+    >
+      <calcite-button slot="dropdown-trigger">Open Dropdown</calcite-button>
+      <calcite-dropdown-group
+        selection-mode="${select("group selection mode", ["single", "multi", "none"], "single")}"
+        group-title="Sort by"
+      >
+        <calcite-dropdown-item>Relevance</calcite-dropdown-item>
+        <calcite-dropdown-item active>Date modified</calcite-dropdown-item>
+        <calcite-dropdown-item>Title</calcite-dropdown-item>
+      </calcite-dropdown-group>
+    </calcite-dropdown>
+  </div>
+`;

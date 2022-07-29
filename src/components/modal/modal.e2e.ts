@@ -1,6 +1,6 @@
 import { newE2EPage } from "@stencil/core/testing";
 import { focusable, renders, slots } from "../../tests/commonTests";
-import { html } from "../../tests/utils";
+import { html } from "../../../support/formatting";
 import { SLOTS } from "./resources";
 
 describe("calcite-modal properties", () => {
@@ -38,24 +38,6 @@ describe("calcite-modal properties", () => {
     expect(style).toEqual("400px");
   });
 
-  it("focuses the firstFocus element on load", async () => {
-    const page = await newE2EPage();
-    await page.setContent(`
-      <calcite-modal active>
-        <h3 slot="header">Title</h3>
-        <p slot="content">This is the content <button class="test">test</button></p>
-      </calcite-modal>
-    `);
-    const modal = await page.find("calcite-modal");
-    let $button;
-    await page.$eval(".test", (elm: any) => {
-      $button = elm.querySelector(".test");
-    });
-    modal.setProperty("firstFocus", $button);
-    await page.waitForChanges();
-    expect(document.activeElement).toEqual($button);
-  });
-
   it("calls the beforeClose method prior to closing", async () => {
     const page = await newE2EPage();
     const mockCallBack = jest.fn();
@@ -79,15 +61,43 @@ describe("calcite-modal properties", () => {
 });
 
 describe("calcite-modal events", () => {
+  it("emits the calciteModalBeforeOpen event before open", async () => {
+    const page = await newE2EPage();
+    await page.setContent(`<calcite-modal></calcite-modal>`);
+    const modal = await page.find("calcite-modal");
+    const changeEvent = await modal.spyOnEvent("calciteModalBeforeOpen");
+    expect(changeEvent).toHaveReceivedEventTimes(0);
+    await modal.setProperty("active", true);
+    await page.waitForChanges();
+    await page.waitForTimeout(400);
+    expect(await modal.getProperty("open")).toBe(true);
+    expect(changeEvent).toHaveReceivedEventTimes(1);
+  });
   it("emits the calciteModalOpen event on open", async () => {
     const page = await newE2EPage();
     await page.setContent(`<calcite-modal></calcite-modal>`);
     const modal = await page.find("calcite-modal");
     const changeEvent = await modal.spyOnEvent("calciteModalOpen");
     expect(changeEvent).toHaveReceivedEventTimes(0);
-    await modal.setProperty("active", true);
+    modal.setProperty("active", true);
     await page.waitForChanges();
     await page.waitForTimeout(400);
+    expect(await modal.getProperty("open")).toBe(true);
+    expect(changeEvent).toHaveReceivedEventTimes(1);
+  });
+  it("emits the calciteModalClose event before close", async () => {
+    const page = await newE2EPage();
+    await page.setContent(`<calcite-modal></calcite-modal>`);
+    const modal = await page.find("calcite-modal");
+    const changeEvent = await modal.spyOnEvent("calciteModalBeforeClose");
+    await modal.setProperty("active", true);
+    await page.waitForChanges();
+    expect(await modal.getProperty("open")).toBe(true);
+    expect(changeEvent).toHaveReceivedEventTimes(0);
+    modal.setProperty("active", false);
+    await page.waitForChanges();
+    await page.waitForTimeout(400);
+    expect(await modal.getProperty("open")).toBe(false);
     expect(changeEvent).toHaveReceivedEventTimes(1);
   });
   it("emits the calciteModalClose event on close", async () => {
@@ -97,10 +107,12 @@ describe("calcite-modal events", () => {
     const changeEvent = await modal.spyOnEvent("calciteModalClose");
     await modal.setProperty("active", true);
     await page.waitForChanges();
+    expect(await modal.getProperty("open")).toBe(true);
     expect(changeEvent).toHaveReceivedEventTimes(0);
     await modal.setProperty("active", false);
     await page.waitForChanges();
     await page.waitForTimeout(400);
+    expect(await modal.getProperty("open")).toBe(false);
     expect(changeEvent).toHaveReceivedEventTimes(1);
   });
 });
@@ -155,6 +167,35 @@ describe("calcite-modal accessibility checks", () => {
     await modal.setProperty("active", false);
     await page.waitForChanges();
     expect(document.activeElement).toEqual($button);
+  });
+
+  it("traps focus within the modal when open and disabled close button", async () => {
+    const page = await newE2EPage();
+    await page.setContent(
+      `<calcite-modal disable-close-button>
+        <div slot="content">
+          <button class="btn-1">Focus1</button>
+          <button class="btn-2">Focus1</button>
+        </div>
+      </calcite-modal>`
+    );
+    const modal = await page.find("calcite-modal");
+    let $button1;
+    let $button2;
+    await page.$eval(".btn-1", (elm) => ($button1 = elm));
+    await page.$eval(".btn-2", (elm) => ($button2 = elm));
+
+    await modal.setProperty("active", true);
+    await page.waitForChanges();
+    await page.keyboard.press("Tab");
+    expect(document.activeElement).toEqual($button1);
+    await page.keyboard.press("Tab");
+    expect(document.activeElement).toEqual($button2);
+    await page.keyboard.down("Shift");
+    await page.keyboard.press("Tab");
+    expect(document.activeElement).toEqual($button2);
+    await page.keyboard.press("Tab");
+    expect(document.activeElement).toEqual($button1);
   });
 
   describe("setFocus", () => {
@@ -218,6 +259,23 @@ describe("calcite-modal accessibility checks", () => {
     await modal.setProperty("active", true);
     await page.waitForChanges();
     expect(modal).toHaveAttribute("active");
+  });
+
+  it("closes when Escape key is pressed and modal is open on page load", async () => {
+    const page = await newE2EPage();
+    await page.setContent(`<calcite-modal intl-close="test" active></calcite-modal>`);
+    const modal = await page.find("calcite-modal");
+    await page.waitForChanges();
+    expect(modal).toHaveAttribute("active");
+    expect(modal).toHaveAttribute("open");
+    await page.keyboard.press("Escape");
+    await page.waitForChanges();
+    expect(modal).not.toHaveAttribute("active");
+    expect(modal).not.toHaveAttribute("open");
+    await modal.setProperty("active", true);
+    await page.waitForChanges();
+    expect(modal).toHaveAttribute("active");
+    expect(modal).toHaveAttribute("open");
   });
 
   it("closes when Close button is clicked", async () => {

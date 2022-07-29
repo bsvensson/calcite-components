@@ -1,11 +1,13 @@
 :host {
-  @apply flex
-    justify-center
-    text-color-3
+  @apply text-color-3
+    flex
+    min-w-0
     cursor-pointer
-    min-w-0;
-  width: calc(100% / 7);
+    justify-center;
+  inline-size: calc(100% / 7);
 }
+
+@include disabled();
 
 .day-v-wrapper {
   @apply flex-auto;
@@ -18,21 +20,24 @@
 }
 
 .day {
-  @apply flex
-    rounded-full
-    text-n2h
-    justify-center
-    items-center
-    leading-none
+  @apply text-n2h
     text-color-3
-    transition-all
-    opacity-disabled;
+    opacity-disabled
+    flex
+    focus-base
+    items-center
+    justify-center
+    rounded-full
+    leading-none
+    transition-default;
   background: none;
-  box-shadow: 0 0 0 2px transparent, 0 0 0 0px transparent;
+  box-shadow: 0 0 0 2px transparent;
 }
 
 .text {
-  @apply mt-px mr-0 mb-0 ml-px;
+  @apply mt-px mb-0;
+  margin-inline-start: theme("spacing.px");
+  margin-inline-start: theme("spacing.0");
 }
 
 :host([scale="s"]) {
@@ -43,8 +48,8 @@
     @apply p-0;
   }
   .day {
-    height: 27px;
-    width: 27px;
+    block-size: 27px;
+    inline-size: 27px;
     @apply text-n2;
   }
 }
@@ -57,8 +62,8 @@
     @apply px-1;
   }
   .day {
-    height: 33px;
-    width: 33px;
+    block-size: 33px;
+    inline-size: 33px;
     @apply text-n1;
   }
 }
@@ -71,19 +76,14 @@
     @apply px-1;
   }
   .day {
-    height: 43px;
-    width: 43px;
+    block-size: 43px;
+    inline-size: 43px;
     @apply text-0;
   }
 }
 
 :host([current-month]) .day {
   @apply opacity-100;
-}
-
-:host([disabled]) {
-  cursor: default;
-  @apply opacity-25;
 }
 
 :host(:hover:not([disabled])),
@@ -100,7 +100,8 @@
 }
 
 :host(:focus:not([disabled])) .day {
-  box-shadow: 0 0 0 2px var(--calcite-ui-foreground-1), 0 0 0 4px var(--calcite-ui-brand);
+  @apply focus-outset;
+  box-shadow: 0 0 0 2px var(--calcite-ui-foreground-1);
 }
 
 :host([selected]) .day {
@@ -187,7 +188,7 @@
 }
 
 :host([highlighted]:not([active]:focus)) .day {
-  @apply rounded-none text-color-1;
+  @apply text-color-1 rounded-none;
 }
 
 :host([range-hover]:not([selected])) {

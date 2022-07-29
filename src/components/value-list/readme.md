@@ -71,23 +71,27 @@ Renders a value list with label editing and single select.
 
 ## Properties
 
-| Property                | Attribute                 | Description                                                                                                                                                                                                                                       | Type      | Default     |
-| ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----------- |
-| `disabled`              | `disabled`                | When true, disabled prevents interaction. This state shows items with lower opacity/grayed.                                                                                                                                                       | `boolean` | `false`     |
-| `dragEnabled`           | `drag-enabled`            | When true, the items will be sortable via drag and drop.                                                                                                                                                                                          | `boolean` | `false`     |
-| `filterEnabled`         | `filter-enabled`          | When true, an input appears at the top of the list that can be used by end users to filter items in the list.                                                                                                                                     | `boolean` | `false`     |
-| `filterPlaceholder`     | `filter-placeholder`      | Placeholder text for the filter input field.                                                                                                                                                                                                      | `string`  | `undefined` |
-| `group`                 | `group`                   | The list's group identifier. To drag elements from one list into another, both lists must have the same group value.                                                                                                                              | `string`  | `undefined` |
-| `loading`               | `loading`                 | When true, content is waiting to be loaded. This state shows a busy indicator.                                                                                                                                                                    | `boolean` | `false`     |
-| `multiple`              | `multiple`                | Multiple Works similar to standard radio buttons and checkboxes. When true, a user can select multiple items at a time. When false, only a single item can be selected at a time and selecting a new item will deselect any other selected items. | `boolean` | `false`     |
-| `selectionFollowsFocus` | `selection-follows-focus` | When true and single-selection is enabled, the selection will change when navigating items via the keyboard.                                                                                                                                      | `boolean` | `false`     |
+| Property                | Attribute                 | Description                                                                                                                                                                                                                                                                                  | Type      | Default     |
+| ----------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----------- |
+| `disabled`              | `disabled`                | When true, interaction is prevented and the component is displayed with lower opacity.                                                                                                                                                                                                       | `boolean` | `false`     |
+| `dragEnabled`           | `drag-enabled`            | When true, `calcite-value-list-item`s are sortable via a draggable button.                                                                                                                                                                                                                   | `boolean` | `false`     |
+| `filterEnabled`         | `filter-enabled`          | When true, an input appears at the top of the component that can be used by end users to filter list items.                                                                                                                                                                                  | `boolean` | `false`     |
+| `filterPlaceholder`     | `filter-placeholder`      | Placeholder text for the filter's input field.                                                                                                                                                                                                                                               | `string`  | `undefined` |
+| `group`                 | `group`                   | The component's group identifier. To drag elements from one list into another, both lists must have the same group value.                                                                                                                                                                    | `string`  | `undefined` |
+| `intlDragHandleActive`  | `intl-drag-handle-active` | When "drag-enabled" is true and active, specifies accessible context to the component. Use ${position} of ${total} as placeholder for displaying indices and ${item.label} as placeholder for displaying label of `calcite-value-list-item`.                                                 | `string`  | `undefined` |
+| `intlDragHandleChange`  | `intl-drag-handle-change` | When "drag-enabled" is true and active, specifies accessible context to the `calcite-value-list-item`'s new position. Use ${position} of ${total} as placeholder for displaying indices and ${item.label} as placeholder for displaying label of `calcite-value-list-item`.                  | `string`  | `undefined` |
+| `intlDragHandleCommit`  | `intl-drag-handle-commit` | When "drag-enabled" is true and active, specifies accessible context to the `calcite-value-list-item`'s current position after commit. Use ${position} of ${total} as placeholder for displaying indices and ${item.label} as placeholder for displaying label of `calcite-value-list-item`. | `string`  | `undefined` |
+| `intlDragHandleIdle`    | `intl-drag-handle-idle`   | When "drag-enabled" is true and active, specifies accessible context to the `calcite-value-list-item`'s initial position. Use ${position} of ${total} as placeholder for displaying indices and ${item.label} as placeholder for displaying label of `calcite-value-list-item`.              | `string`  | `undefined` |
+| `loading`               | `loading`                 | When true, a busy indicator is displayed.                                                                                                                                                                                                                                                    | `boolean` | `false`     |
+| `multiple`              | `multiple`                | Similar to standard radio buttons and checkboxes. When true, a user can select multiple `calcite-value-list-item`s at a time. When false, only a single `calcite-value-list-item` can be selected at a time, and a new selection will deselect previous selections.                          | `boolean` | `false`     |
+| `selectionFollowsFocus` | `selection-follows-focus` | When true and single-selection is enabled, the selection changes when navigating `calcite-value-list-item`s via keyboard.                                                                                                                                                                    | `boolean` | `false`     |
 
 ## Events
 
-| Event                    | Description                                           | Type                            |
-| ------------------------ | ----------------------------------------------------- | ------------------------------- |
-| `calciteListChange`      | Emitted when any of the item selections have changed. | `CustomEvent<Map<string, any>>` |
-| `calciteListOrderChange` | Emitted when the order of the list has changed.       | `CustomEvent<any[]>`            |
+| Event                    | Description                                              | Type                                                        |
+| ------------------------ | -------------------------------------------------------- | ----------------------------------------------------------- |
+| `calciteListChange`      | Emits when any of the list item selections have changed. | `CustomEvent<Map<string, HTMLCalciteValueListItemElement>>` |
+| `calciteListOrderChange` | Emits when the order of the list has changed.            | `CustomEvent<any[]>`                                        |
 
 ## Methods
 
@@ -97,7 +101,7 @@ Returns the currently selected items
 
 #### Returns
 
-Type: `Promise<Map<string, any>>`
+Type: `Promise<Map<string, HTMLCalciteValueListItemElement>>`
 
 ### `setFocus(focusId?: ListFocusId) => Promise<void>`
 
@@ -109,10 +113,10 @@ Type: `Promise<void>`
 
 ## Slots
 
-| Slot             | Description                                                                                   |
-| ---------------- | --------------------------------------------------------------------------------------------- |
-|                  | A slot for adding `calcite-value-list-item` elements. Items are displayed as a vertical list. |
-| `"menu-actions"` | A slot for adding a button + menu combo for performing actions like sorting.                  |
+| Slot             | Description                                                                                        |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+|                  | A slot for adding `calcite-value-list-item` elements. List items are displayed as a vertical list. |
+| `"menu-actions"` | A slot for adding a button and menu combination for performing actions, such as sorting.           |
 
 ## Dependencies
 
@@ -127,12 +131,10 @@ Type: `Promise<void>`
 graph TD;
   calcite-value-list --> calcite-filter
   calcite-value-list --> calcite-scrim
-  calcite-filter --> calcite-scrim
   calcite-filter --> calcite-input
-  calcite-filter --> calcite-icon
-  calcite-scrim --> calcite-loader
   calcite-input --> calcite-progress
   calcite-input --> calcite-icon
+  calcite-scrim --> calcite-loader
   style calcite-value-list fill:#f9f,stroke:#333,stroke-width:4px
 ```
 

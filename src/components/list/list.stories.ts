@@ -1,8 +1,8 @@
-import { themesDarkDefault } from "../../../.storybook/utils";
+import { placeholderImage, themesDarkDefault } from "../../../.storybook/utils";
 import readme from "./readme.md";
 import itemReadme from "../list-item/readme.md";
 import groupReadme from "../list-item-group/readme.md";
-import { html, placeholderImage } from "../../tests/utils";
+import { html } from "../../../support/formatting";
 
 export default {
   title: "Components/List",
@@ -82,6 +82,34 @@ export const GroupedItems = (): string => html`
     </calcite-list-item-group>
   </calcite-list>
 `;
+
+export const StartAndEndContentSlots = (): string => html`<calcite-list>
+  <calcite-list-item>
+    <calcite-action slot="actions-end" icon="ellipsis"> </calcite-action>
+    <calcite-icon icon="layers" scale="m" slot="content-start"></calcite-icon>
+    <span slot="content-start">Some value or something and a <b>thing</b>.</span>
+    <div slot="content-end" style="display: flex; justify-content: flex-end">
+      <calcite-chip class="list-chip" icon="ribbon-rosette" scale="s">Review</calcite-chip>
+      <calcite-chip class="list-chip" icon="globe" scale="s" color="green">Good</calcite-chip>
+    </div>
+  </calcite-list-item>
+  <calcite-list-item>
+    <calcite-action slot="actions-end" icon="ellipsis"> </calcite-action>
+    <calcite-icon icon="user" scale="m" slot="content-start"></calcite-icon>
+    <span slot="content-start">Some value or something and a <b>thing</b>.</span>
+    <div slot="content-end" style="display: flex; justify-content: flex-end">
+      <calcite-chip class="list-chip" icon="globe" scale="s" color="green">Good</calcite-chip>
+    </div>
+  </calcite-list-item>
+  <calcite-list-item>
+    <calcite-action slot="actions-end" icon="ellipsis"> </calcite-action>
+    <calcite-icon icon="user" scale="m" slot="content-start"></calcite-icon>
+    <span slot="content-start">Some value or something and a <b>thing</b>.</span>
+    <div slot="content-end" style="display: flex; justify-content: flex-end">
+      <calcite-chip class="list-chip" icon="bell" color="red" scale="s">Halp!</calcite-chip>
+    </div>
+  </calcite-list-item>
+</calcite-list> `;
 
 export const RichContent = (): string => html`
   <calcite-list>
@@ -187,3 +215,21 @@ export const DarkMode = (): string => html`
 
 DarkMode.storyName = "Dark mode";
 DarkMode.parameters = { themes: themesDarkDefault };
+
+export const disabled = (): string => html`<calcite-list disabled>
+  <calcite-list-item
+    label="Cras iaculis ultricies nulla."
+    description="Lorem ipsum dolor sit amet, consectetuer adipiscing elit."
+  ></calcite-list-item>
+  <calcite-list-item
+    disabled
+    label="Ut aliquam sollicitudin leo."
+    description="Aliquam tincidunt mauris eu risus."
+  ></calcite-list-item>
+  <calcite-list-item
+    label="Vestibulum commodo felis quis tortor.
+    "
+    description="Vestibulum auctor dapibus neque.
+    "
+  ></calcite-list-item>
+</calcite-list>`;

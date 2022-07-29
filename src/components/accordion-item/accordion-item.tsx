@@ -7,12 +7,19 @@ import {
   Host,
   Listen,
   Prop,
-  VNode
+  VNode,
+  Watch
 } from "@stencil/core";
-import { getElementDir, getElementProp } from "../../utils/dom";
-
+import { getElementDir, getElementProp, getSlotted, toAriaBoolean } from "../../utils/dom";
+import {
+  connectConditionalSlotComponent,
+  disconnectConditionalSlotComponent,
+  ConditionalSlotComponent
+} from "../../utils/conditionalSlot";
 import { CSS_UTILITY } from "../../utils/resources";
+import { SLOTS, CSS } from "./resources";
 import { Position } from "../interfaces";
+import { ItemKeyEvent, RegistryEntry, RequestedItem } from "./interfaces";
 
 /**
  * @slot - A slot for adding custom content, including nested `calcite-accordion-item`s.
@@ -22,7 +29,7 @@ import { Position } from "../interfaces";
   styleUrl: "accordion-item.scss",
   shadow: true
 })
-export class AccordionItem {
+export class AccordionItem implements ConditionalSlotComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -37,16 +44,49 @@ export class AccordionItem {
   //
   //--------------------------------------------------------------------------
 
-  /** Indicates whether the item is active. */
+  /**
+   * When true, the component is active.
+   *
+   * @deprecated use expanded instead
+   */
+
   @Prop({ reflect: true, mutable: true }) active = false;
 
-  /** pass a title for the accordion item */
-  @Prop() itemTitle?: string;
+  @Watch("active")
+  activeHandler(value: boolean): void {
+    this.expanded = value;
+  }
 
-  /** pass a title for the accordion item */
+  /** When true, item is expanded */
+  @Prop({ reflect: true, mutable: true }) expanded = false;
+
+  @Watch("expanded")
+  expandedHandler(value: boolean): void {
+    this.active = value;
+  }
+
+  /**
+   * Specifies a title for the component.
+   *
+   * @deprecated Use `heading` instead.
+   */
+  @Prop()
+  itemTitle?: string;
+
+  /**
+   * Specifies a subtitle for the component.
+   *
+   * @deprecated Use `description` instead.
+   */
   @Prop() itemSubtitle?: string;
 
-  /** optionally pass an icon to display - accepts Calcite UI icon names  */
+  /** Specifies heading text for the component. */
+  @Prop() heading?: string;
+
+  /** Specifies a description for the component. */
+  @Prop() description: string;
+
+  /** Specifies an icon to display - accepts Calcite UI icon names. */
   @Prop({ reflect: true }) icon?: string;
 
   //--------------------------------------------------------------------------
@@ -58,22 +98,22 @@ export class AccordionItem {
   /**
    * @internal
    */
-  @Event() calciteAccordionItemKeyEvent: EventEmitter;
+  @Event() calciteInternalAccordionItemKeyEvent: EventEmitter<ItemKeyEvent>;
 
   /**
    * @internal
    */
-  @Event() calciteAccordionItemSelect: EventEmitter;
+  @Event() calciteInternalAccordionItemSelect: EventEmitter<RequestedItem>;
 
   /**
    * @internal
    */
-  @Event() calciteAccordionItemClose: EventEmitter;
+  @Event() calciteInternalAccordionItemClose: EventEmitter<void>;
 
   /**
    * @internal
    */
-  @Event() calciteAccordionItemRegister: EventEmitter;
+  @Event() calciteInternalAccordionItemRegister: EventEmitter<RegistryEntry>;
 
   //--------------------------------------------------------------------------
   //
@@ -86,55 +126,94 @@ export class AccordionItem {
     this.selectionMode = getElementProp(this.el, "selection-mode", "multi");
     this.iconType = getElementProp(this.el, "icon-type", "chevron");
     this.iconPosition = getElementProp(this.el, "icon-position", this.iconPosition);
+    const isExpanded = this.active || this.expanded;
+    if (isExpanded) {
+      this.activeHandler(isExpanded);
+      this.expandedHandler(isExpanded);
+    }
+    connectConditionalSlotComponent(this);
   }
 
   componentDidLoad(): void {
     this.itemPosition = this.getItemPosition();
-    this.calciteAccordionItemRegister.emit({
+    this.calciteInternalAccordionItemRegister.emit({
       parent: this.parent,
       position: this.itemPosition
     });
   }
 
+  disconnectedCallback(): void {
+    disconnectConditionalSlotComponent(this);
+  }
+
+  // --------------------------------------------------------------------------
+  //
+  //  Render Methods
+  //
+  // --------------------------------------------------------------------------
+
+  renderActionsStart(): VNode {
+    const { el } = this;
+    return getSlotted(el, SLOTS.actionsStart) ? (
+      <div class={CSS.actionsStart}>
+        <slot name={SLOTS.actionsStart} />
+      </div>
+    ) : null;
+  }
+
+  renderActionsEnd(): VNode {
+    const { el } = this;
+    return getSlotted(el, SLOTS.actionsEnd) ? (
+      <div class={CSS.actionsEnd}>
+        <slot name={SLOTS.actionsEnd} />
+      </div>
+    ) : null;
+  }
+
   render(): VNode {
     const dir = getElementDir(this.el);
-
-    const iconEl = <calcite-icon class="accordion-item-icon" icon={this.icon} scale="s" />;
-
+    const iconEl = <calcite-icon class={CSS.icon} icon={this.icon} scale="s" />;
     return (
-      <Host aria-expanded={this.active.toString()} tabindex="0">
+      <Host>
         <div
           class={{
             [`icon-position--${this.iconPosition}`]: true,
             [`icon-type--${this.iconType}`]: true
           }}
         >
-          <div
-            class={{ "accordion-item-header": true, [CSS_UTILITY.rtl]: dir === "rtl" }}
-            onClick={this.itemHeaderClickHandler}
-          >
-            {this.icon ? iconEl : null}
-            <div class="accordion-item-header-text">
-              <span class="accordion-item-title">{this.itemTitle}</span>
-              {this.itemSubtitle ? (
-                <span class="accordion-item-subtitle">{this.itemSubtitle}</span>
-              ) : null}
+          <div class={{ [CSS.header]: true, [CSS_UTILITY.rtl]: dir === "rtl" }}>
+            {this.renderActionsStart()}
+            <div
+              aria-expanded={toAriaBoolean(this.active || this.expanded)}
+              class={CSS.headerContent}
+              onClick={this.itemHeaderClickHandler}
+              role="button"
+              tabindex="0"
+            >
+              {this.icon ? iconEl : null}
+              <div class={CSS.headerText}>
+                <span class={CSS.heading}>{this.heading || this.itemTitle}</span>
+                {this.itemSubtitle || this.description ? (
+                  <span class={CSS.description}>{this.description || this.itemSubtitle}</span>
+                ) : null}
+              </div>
+              <calcite-icon
+                class={CSS.expandIcon}
+                icon={
+                  this.iconType === "chevron"
+                    ? "chevronDown"
+                    : this.iconType === "caret"
+                    ? "caretDown"
+                    : this.expanded || this.active
+                    ? "minus"
+                    : "plus"
+                }
+                scale="s"
+              />
             </div>
-            <calcite-icon
-              class="accordion-item-expand-icon"
-              icon={
-                this.iconType === "chevron"
-                  ? "chevronDown"
-                  : this.iconType === "caret"
-                  ? "caretDown"
-                  : this.active
-                  ? "minus"
-                  : "plus"
-              }
-              scale="s"
-            />
+            {this.renderActionsEnd()}
           </div>
-          <div class="accordion-item-content">
+          <div class={CSS.content}>
             <slot />
           </div>
         </div>
@@ -148,29 +227,30 @@ export class AccordionItem {
   //
   //--------------------------------------------------------------------------
 
-  @Listen("keydown") keyDownHandler(e: KeyboardEvent): void {
-    if (e.target === this.el) {
-      switch (e.key) {
+  @Listen("keydown")
+  keyDownHandler(event: KeyboardEvent): void {
+    if (event.target === this.el) {
+      switch (event.key) {
         case " ":
         case "Enter":
           this.emitRequestedItem();
-          e.preventDefault();
+          event.preventDefault();
           break;
         case "ArrowUp":
         case "ArrowDown":
         case "Home":
         case "End":
-          this.calciteAccordionItemKeyEvent.emit({
+          this.calciteInternalAccordionItemKeyEvent.emit({
             parent: this.parent,
-            item: e
+            item: event
           });
-          e.preventDefault();
+          event.preventDefault();
           break;
       }
     }
   }
 
-  @Listen("calciteAccordionChange", { target: "body" })
+  @Listen("calciteInternalAccordionChange", { target: "body" })
   updateActiveItemOnChange(event: CustomEvent): void {
     this.requestedAccordionItem = event.detail
       .requestedAccordionItem as HTMLCalciteAccordionItemElement;
@@ -178,6 +258,7 @@ export class AccordionItem {
       return;
     }
     this.determineActiveItem();
+    event.stopPropagation();
   }
 
   //--------------------------------------------------------------------------
@@ -216,22 +297,22 @@ export class AccordionItem {
     switch (this.selectionMode) {
       case "multi":
         if (this.el === this.requestedAccordionItem) {
-          this.active = !this.active;
+          this.expanded = !this.expanded;
         }
         break;
 
       case "single":
-        this.active = this.el === this.requestedAccordionItem ? !this.active : false;
+        this.expanded = this.el === this.requestedAccordionItem ? !this.expanded : false;
         break;
 
       case "single-persist":
-        this.active = this.el === this.requestedAccordionItem;
+        this.expanded = this.el === this.requestedAccordionItem;
         break;
     }
   }
 
   private emitRequestedItem(): void {
-    this.calciteAccordionItemSelect.emit({
+    this.calciteInternalAccordionItemSelect.emit({
       requestedAccordionItem: this.el as HTMLCalciteAccordionItemElement
     });
   }

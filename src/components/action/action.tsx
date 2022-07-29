@@ -16,6 +16,8 @@ import { Alignment, Appearance, Scale } from "../interfaces";
 import { CSS, TEXT } from "./resources";
 
 import { createObserver } from "../../utils/observers";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
+import { toAriaBoolean } from "../../utils/dom";
 
 /**
  * @slot - A slot for adding a `calcite-icon`.
@@ -25,7 +27,7 @@ import { createObserver } from "../../utils/observers";
   styleUrl: "action.scss",
   shadow: true
 })
-export class Action {
+export class Action implements InteractiveComponent {
   // --------------------------------------------------------------------------
   //
   //  Properties
@@ -33,60 +35,60 @@ export class Action {
   // --------------------------------------------------------------------------
 
   /**
-   * Indicates whether the action is highlighted.
+   * When true, the component is highlighted.
    */
   @Prop({ reflect: true }) active = false;
 
   /**
-   * Optionally specify the horizontal alignment of button elements with text content.
+   * Specifies the horizontal alignment of button elements with text content.
    */
   @Prop({ reflect: true }) alignment?: Alignment;
 
-  /** Specify the appearance style of the action, defaults to solid. */
+  /** Specifies the appearance of the component. */
   @Prop({ reflect: true }) appearance: Extract<"solid" | "clear", Appearance> = "solid";
 
   /**
-   * Compact mode is used internally by components to reduce side padding, e.g. calcite-block-section.
+   * When true, the side padding of the component is reduced. Compact mode is used internally by components, e.g. `calcite-block-section`.
    */
   @Prop({ reflect: true }) compact = false;
 
   /**
-   * When true, disabled prevents interaction. This state shows items with lower opacity/grayed.
+   * When true, interaction is prevented and the component is displayed with lower opacity.
    */
   @Prop({ reflect: true }) disabled = false;
 
-  /**
-   * The name of the icon to display. The value of this property must match the icon name from https://esri.github.io/calcite-ui-icons/.
-   */
+  /** Specifies an icon to display - accepts Calcite UI icon names.  */
   @Prop() icon?: string;
 
   /**
-   * Indicates unread changes.
+   * When true, indicates unread changes.
    */
   @Prop({ reflect: true }) indicator = false;
 
-  /** string to override English loading text
+  /**
+   * Specifies the text label to display while loading.
+   *
    * @default "Loading"
    */
   @Prop() intlLoading?: string = TEXT.loading;
 
   /**
-   * The label of the action. If no label is provided, the label inherits what's provided for the `text` prop.
+   * Specifies the label of the component. If no label is provided, the label inherits what's provided for the `text` prop.
    */
   @Prop() label?: string;
 
   /**
-   * When true, content is waiting to be loaded. This state shows a busy indicator.
+   * When true, a busy indicator is displayed.
    */
   @Prop({ reflect: true }) loading = false;
 
   /**
-   * Specifies the size of the action.
+   * Specifies the size of the component.
    */
   @Prop({ reflect: true }) scale: Scale = "m";
 
   /**
-   * Text that accompanies the action icon.
+   * Specifies text that accompanies the icon.
    */
   @Prop() text!: string;
 
@@ -102,10 +104,11 @@ export class Action {
   // --------------------------------------------------------------------------
 
   /**
-   * Emitted when the action has been clicked.
+   * Emits when the component has been clicked.
+   *
    * @deprecated use onClick instead.
    */
-  @Event() calciteActionClick: EventEmitter;
+  @Event() calciteActionClick: EventEmitter<void>;
 
   // --------------------------------------------------------------------------
   //
@@ -133,6 +136,10 @@ export class Action {
     this.mutationObserver?.disconnect();
   }
 
+  componentDidRender(): void {
+    updateHostInteraction(this);
+  }
+
   // --------------------------------------------------------------------------
   //
   //  Methods
@@ -142,7 +149,7 @@ export class Action {
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
-    this.buttonEl.focus();
+    this.buttonEl?.focus();
   }
 
   // --------------------------------------------------------------------------
@@ -169,8 +176,9 @@ export class Action {
   renderIconContainer(): VNode {
     const { loading, icon, scale, el, intlLoading } = this;
     const iconScale = scale === "l" ? "m" : "s";
+    const loaderScale = scale === "l" ? "l" : "m";
     const calciteLoaderNode = loading ? (
-      <calcite-loader active inline label={intlLoading} scale={iconScale} />
+      <calcite-loader active inline label={intlLoading} scale={loaderScale} />
     ) : null;
     const calciteIconNode = icon ? <calcite-icon icon={icon} scale={iconScale} /> : null;
     const iconNode = calciteLoaderNode || calciteIconNode;
@@ -209,8 +217,8 @@ export class Action {
     return (
       <Host onClick={this.calciteActionClickHandler}>
         <button
-          aria-busy={loading.toString()}
-          aria-disabled={disabled.toString()}
+          aria-busy={toAriaBoolean(loading)}
+          aria-disabled={toAriaBoolean(disabled)}
           aria-label={ariaLabel}
           class={buttonClasses}
           disabled={disabled}

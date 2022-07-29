@@ -8,6 +8,8 @@ import {
 } from "../../../.storybook/utils";
 import colorReadme from "./readme.md";
 import { ATTRIBUTES } from "../../../.storybook/resources";
+import { html } from "../../../support/formatting";
+import { createSteps, stepStory } from "../../../.storybook/helpers";
 
 export default {
   title: "Components/Controls/ColorPicker",
@@ -97,3 +99,20 @@ export const AllowingEmpty = (): string =>
     { name: "allow-empty", value: true },
     { name: "value", value: text("value", "") }
   ]);
+
+export const disabled = (): string => html`<calcite-color-picker disabled></calcite-color-picker>`;
+
+export const thumbsOnEdgeDoNotOverflowContainer = (): string => html`<div style="overflow: auto; width: 274px;">
+  <calcite-color-picker value="#04006e"></calcite-color-picker>
+</div>`;
+
+export const thumbsOnEdgeDoNotSnapToFrontOfContainer = (): string => html`<div style="overflow: auto; width: 272px;">
+  <calcite-color-picker value="#824142"></calcite-color-picker>
+</div>`;
+
+export const colorFieldAndHueSliderAreResizedAfterScaleChange = stepStory(
+  (): string => html` <calcite-color-picker scale="m"></calcite-color-picker>`,
+  createSteps("calcite-color-picker")
+    .executeScript(`document.querySelector("calcite-color-picker").scale = "s"`)
+    .snapshot("Color field and hue slider are resized after scale change")
+);

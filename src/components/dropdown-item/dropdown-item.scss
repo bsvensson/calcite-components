@@ -39,27 +39,27 @@
 }
 
 @mixin itemStyling {
-  @apply flex
+  @apply text-color-3
+    relative
+    flex
     flex-grow
-    items-center
-    text-color-3
-    duration-150
-    ease-in-out
     cursor-pointer
+    items-center
     no-underline
-    outline-none
-    relative;
+    duration-150
+    ease-in-out;
 }
 
 :host {
-  @apply flex
+  @apply relative
+    flex
     flex-grow
-    items-center
-    relative;
+    items-center;
 }
 
 .container {
   @include itemStyling;
+  text-align: start;
 }
 
 .dropdown-item-content {
@@ -74,7 +74,7 @@
   @apply focus-base;
 }
 :host(:focus) {
-  @apply focus-inset;
+  @apply focus-inset outline-none;
 }
 
 // when used as link move styling anchor

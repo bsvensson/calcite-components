@@ -52,7 +52,7 @@ export class ShellPanel implements ConditionalSlotComponent {
   @Prop({ reflect: true }) detached = false;
 
   /**
-   * Specifies the maxiumum height of the contents when detached.
+   * Specifies the maximum height of the contents when detached.
    */
   @Prop({ reflect: true }) detachedHeightScale: Scale = "l";
 
@@ -69,6 +69,7 @@ export class ShellPanel implements ConditionalSlotComponent {
 
   /**
    * Accessible label for resize separator.
+   *
    * @default "Resize"
    */
   @Prop() intlResize = TEXT.resize;
@@ -131,8 +132,10 @@ export class ShellPanel implements ConditionalSlotComponent {
 
   /**
    * Emitted when collapse has been toggled.
+   *
+   * @deprecated use a resizeObserver on the shell-panel to listen for changes to its size.
    */
-  @Event() calciteShellPanelToggle: EventEmitter;
+  @Event() calciteShellPanelToggle: EventEmitter<void>;
 
   // --------------------------------------------------------------------------
   //

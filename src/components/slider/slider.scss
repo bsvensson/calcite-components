@@ -30,7 +30,7 @@
 
 .handle__label,
 .tick__label {
-  @apply font-medium text-color-2;
+  @apply text-color-2 font-medium;
   font-size: var(--calcite-slider-container-font-size);
 }
 
@@ -39,16 +39,17 @@
 }
 
 .container {
-  @apply block relative;
-  padding: calc(var(--calcite-slider-handle-size) * 0.5);
-  margin: calc(var(--calcite-slider-handle-size) * 0.5) 0;
+  @apply relative block break-normal;
+  padding-inline: calc(var(--calcite-slider-handle-size) * 0.5);
+  padding-block: calc(var(--calcite-slider-handle-size) * 0.5);
+  margin-block: calc(var(--calcite-slider-handle-size) * 0.5);
+  margin-inline: 0;
   --calcite-slider-full-handle-height: calc(
     var(--calcite-slider-handle-size) + var(--calcite-slider-handle-extension-height)
   );
 }
 
-:host([disabled]) {
-  @apply opacity-disabled pointer-events-none;
+@include disabled() {
   .track__range,
   .tick--active {
     background-color: var(--calcite-ui-text-3);
@@ -78,36 +79,36 @@
 }
 
 .thumb-container {
-  @apply max-w-full relative;
+  @apply relative max-w-full;
 }
 
 .thumb {
   --calcite-slider-thumb-x-offset: calc(var(--calcite-slider-handle-size) * 0.5);
-  @apply absolute
-    border-none
-    bg-transparent
-    cursor-pointer
-    outline-none
-    p-0
+  @apply font-inherit
+    absolute
     m-0
     flex
+    cursor-pointer
     flex-col
     items-center
-    font-inherit;
+    border-none
+    bg-transparent
+    p-0
+    outline-none;
   transform: translate(var(--calcite-slider-thumb-x-offset), var(--calcite-slider-thumb-y-offset));
 
   .handle__label {
     &.static,
     &.transformed {
-      @apply opacity-0
-        absolute
+      @apply absolute
         top-0
-        bottom-0;
+        bottom-0
+        opacity-0;
     }
     &.hyphen::after {
       content: "\2014";
       display: inline-block;
-      width: 1em;
+      inline-size: 1em;
     }
     &.hyphen--wrap {
       display: flex;
@@ -116,11 +117,11 @@
 
   .handle {
     @apply focus-base
+      bg-foreground-1
       box-border
-      rounded-full
-      bg-foreground-1;
-    height: var(--calcite-slider-handle-size);
-    width: var(--calcite-slider-handle-size);
+      rounded-full;
+    block-size: var(--calcite-slider-handle-size);
+    inline-size: var(--calcite-slider-handle-size);
     box-shadow: 0 0 0 2px var(--calcite-ui-text-3) inset;
     transition: border var(--calcite-internal-animation-timing-medium) ease,
       background-color var(--calcite-internal-animation-timing-medium) ease,
@@ -129,7 +130,7 @@
 
   .handle-extension {
     @apply w-0.5;
-    height: var(--calcite-slider-handle-extension-height);
+    block-size: var(--calcite-slider-handle-extension-height);
     background-color: var(--calcite-ui-text-3);
   }
 
@@ -186,13 +187,13 @@
 :host([has-histogram][label-handles]),
 :host([label-handles]:not([has-histogram])) .thumb--minValue.thumb--precise {
   .handle__label {
-    margin-top: 0.5em;
+    margin-block-start: 0.5em;
   }
 }
 :host(:not([has-histogram]):not([precise])),
 :host([label-handles]:not([has-histogram])) .thumb--value {
   .handle__label {
-    margin-bottom: 0.5em;
+    margin-block-end: 0.5em;
   }
 }
 
@@ -223,16 +224,16 @@
 }
 
 .track {
-  @apply h-0.5 rounded-none relative;
+  @apply relative h-0.5 rounded-none;
   background-color: var(--calcite-ui-border-2);
   transition: all var(--calcite-internal-animation-timing-medium) ease-in;
 }
 
 .track__range {
-  @apply absolute
-    top-0
-    h-0.5
-    bg-brand;
+  @apply bg-brand
+  absolute
+  top-0
+  h-0.5;
 }
 .container--range {
   .track__range {
@@ -242,21 +243,44 @@
     &:after {
       @apply absolute w-full;
       content: "";
-      top: calc(calc(var(--calcite-slider-full-handle-height) * 0.5) * -1);
-      height: calc(var(--calcite-slider-handle-size) + var(--calcite-slider-handle-extension-height));
+      inset-block-start: calc(calc(var(--calcite-slider-full-handle-height) * 0.5) * -1);
+      block-size: calc(var(--calcite-slider-handle-size) + var(--calcite-slider-handle-extension-height));
     }
+  }
+}
+
+@media (forced-colors: active) {
+  .thumb {
+    outline-width: 0;
+    outline-offset: 0;
+  }
+  .handle {
+    @apply outline-none;
+  }
+  .thumb:focus .handle,
+  .thumb .handle-extension,
+  .thumb:hover .handle-extension,
+  .thumb:focus .handle-extension,
+  .thumb:active .handle-extension {
+    background-color: canvasText;
+  }
+  .track {
+    background-color: canvasText;
+  }
+  .track__range {
+    background-color: highlight;
   }
 }
 
 .tick {
   @apply absolute
-    w-0.5
     h-1
+    w-0.5
     border
     border-solid;
   background-color: var(--calcite-ui-border-input);
   border-color: var(--calcite-ui-foreground-1);
-  top: -2px;
+  inset-block-start: -2px;
   pointer-events: none;
   margin-inline-start: calc(-1 * theme("margin[0.5]"));
 }
@@ -266,10 +290,10 @@
 }
 
 .tick__label {
-  @apply flex
-    justify-center
-    pointer-events-none
-    mt-3.5;
+  @apply pointer-events-none
+    mt-3.5
+    flex
+    justify-center;
 }
 
 .tick__label--min {
@@ -284,59 +308,63 @@
 :host([has-histogram][precise]) {
   .tick__label--min,
   .tick__label--max {
-    @apply font-normal text-color-3;
+    @apply text-color-3 font-normal;
   }
 }
 
 .graph {
   color: var(--calcite-ui-foreground-3);
-  height: 48px;
+  block-size: 48px;
 }
 
 // Ensure we have enough space on variants with text elements to prevent overlap
 :host([label-ticks][ticks]) {
   .container {
     // match tick__label top margin + font-size
-    padding-bottom: calc(theme("margin[3.5]") + var(--calcite-slider-container-font-size));
+    padding-block-end: calc(theme("margin[3.5]") + var(--calcite-slider-container-font-size));
   }
 }
 :host([has-histogram]) {
   &:host([precise][label-handles]) {
     .container {
-      padding-bottom: calc(var(--calcite-slider-full-handle-height) + 1em);
+      padding-block-end: calc(var(--calcite-slider-full-handle-height) + 1em);
     }
   }
   &:host([label-handles]:not([precise])) {
     .container {
-      padding-bottom: calc(calc(var(--calcite-slider-handle-size) * 0.5) + 1em);
+      padding-block-end: calc(calc(var(--calcite-slider-handle-size) * 0.5) + 1em);
     }
   }
   &:host([precise]:not([label-handles])) {
     .container {
-      padding-bottom: var(--calcite-slider-full-handle-height);
+      padding-block-end: var(--calcite-slider-full-handle-height);
     }
   }
 }
 :host(:not([has-histogram])) {
   &:host([precise]:not([label-handles])) {
     .container {
-      padding-top: var(--calcite-slider-full-handle-height);
+      padding-block-start: var(--calcite-slider-full-handle-height);
     }
     .container--range {
-      padding-bottom: var(--calcite-slider-full-handle-height);
+      padding-block-end: var(--calcite-slider-full-handle-height);
     }
   }
   &:host([label-handles]:not([precise])) {
     .container {
-      padding-top: calc(var(--calcite-slider-full-handle-height) + 4px);
+      padding-block-start: calc(var(--calcite-slider-full-handle-height) + 4px);
     }
   }
   &:host([label-handles][precise]) {
     .container {
-      padding-top: calc(var(--calcite-slider-full-handle-height) + var(--calcite-slider-container-font-size) + 4px);
+      padding-block-start: calc(
+        var(--calcite-slider-full-handle-height) + var(--calcite-slider-container-font-size) + 4px
+      );
     }
     .container--range {
-      padding-bottom: calc(var(--calcite-slider-full-handle-height) + var(--calcite-slider-container-font-size) + 4px);
+      padding-block-end: calc(
+        var(--calcite-slider-full-handle-height) + var(--calcite-slider-container-font-size) + 4px
+      );
     }
   }
 }

@@ -14,13 +14,15 @@ import { Scale } from "../interfaces";
 import { CheckableFormCompoment, HiddenFormInputSlot } from "../../utils/form";
 import { LabelableComponent, connectLabel, disconnectLabel, getLabelText } from "../../utils/label";
 import { connectForm, disconnectForm } from "../../utils/form";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
+import { toAriaBoolean } from "../../utils/dom";
 
 @Component({
   tag: "calcite-checkbox",
   styleUrl: "checkbox.scss",
   shadow: true
 })
-export class Checkbox implements LabelableComponent, CheckableFormCompoment {
+export class Checkbox implements LabelableComponent, CheckableFormCompoment, InteractiveComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -46,6 +48,7 @@ export class Checkbox implements LabelableComponent, CheckableFormCompoment {
 
   /**
    * The hovered state of the checkbox.
+   *
    * @internal
    */
   @Prop({ reflect: true, mutable: true }) hovered = false;
@@ -54,11 +57,12 @@ export class Checkbox implements LabelableComponent, CheckableFormCompoment {
    * True if the checkbox is initially indeterminate,
    * which is independent from its checked state
    * https://css-tricks.com/indeterminate-checkboxes/
-   * */
+   */
   @Prop({ reflect: true, mutable: true }) indeterminate = false;
 
   /**
    * The label of the checkbox input
+   *
    * @internal
    */
   @Prop() label?: string;
@@ -92,6 +96,8 @@ export class Checkbox implements LabelableComponent, CheckableFormCompoment {
   labelEl: HTMLCalciteLabelElement;
 
   formEl: HTMLFormElement;
+
+  defaultChecked: boolean;
 
   defaultValue: Checkbox["checked"];
 
@@ -149,17 +155,17 @@ export class Checkbox implements LabelableComponent, CheckableFormCompoment {
    *
    * @internal
    */
-  @Event() calciteInternalCheckboxBlur: EventEmitter;
+  @Event() calciteInternalCheckboxBlur: EventEmitter<boolean>;
 
   /** Emitted when the checkbox checked status changes */
-  @Event() calciteCheckboxChange: EventEmitter;
+  @Event() calciteCheckboxChange: EventEmitter<void>;
 
   /**
    * Emitted when the checkbox is focused
    *
    * @internal
    */
-  @Event() calciteInternalCheckboxFocus: EventEmitter;
+  @Event() calciteInternalCheckboxFocus: EventEmitter<boolean>;
 
   //--------------------------------------------------------------------------
   //
@@ -196,6 +202,10 @@ export class Checkbox implements LabelableComponent, CheckableFormCompoment {
     disconnectForm(this);
   }
 
+  componentDidRender(): void {
+    updateHostInteraction(this);
+  }
+
   // --------------------------------------------------------------------------
   //
   //  Render Methods
@@ -206,7 +216,7 @@ export class Checkbox implements LabelableComponent, CheckableFormCompoment {
     return (
       <Host onClick={this.clickHandler} onKeyDown={this.keyDownHandler}>
         <div
-          aria-checked={this.checked.toString()}
+          aria-checked={toAriaBoolean(this.checked)}
           aria-label={getLabelText(this)}
           class="toggle"
           onBlur={this.onToggleBlur}

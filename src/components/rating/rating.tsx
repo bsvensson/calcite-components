@@ -16,13 +16,15 @@ import { Scale } from "../interfaces";
 import { LabelableComponent, connectLabel, disconnectLabel } from "../../utils/label";
 import { connectForm, disconnectForm, FormComponent, HiddenFormInputSlot } from "../../utils/form";
 import { TEXT } from "./resources";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
+import { isActivationKey } from "../../utils/key";
 
 @Component({
   tag: "calcite-rating",
   styleUrl: "rating.scss",
   shadow: true
 })
-export class Rating implements LabelableComponent, FormComponent {
+export class Rating implements LabelableComponent, FormComponent, InteractiveComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -61,12 +63,16 @@ export class Rating implements LabelableComponent, FormComponent {
   /** The name of the rating */
   @Prop({ reflect: true }) name: string;
 
-  /** Localized string for "Rating" (used for aria label)
+  /**
+   * Localized string for "Rating" (used for aria label)
+   *
    * @default "Rating"
    */
   @Prop() intlRating?: string = TEXT.rating;
 
-  /** Localized string for labelling each star, `${num}` in the string will be replaced by the number
+  /**
+   * Localized string for labelling each star, `${num}` in the string will be replaced by the number
+   *
    * @default "Stars: ${num}"
    */
   @Prop() intlStars?: string = TEXT.stars;
@@ -94,6 +100,10 @@ export class Rating implements LabelableComponent, FormComponent {
     disconnectForm(this);
   }
 
+  componentDidRender(): void {
+    updateHostInteraction(this);
+  }
+
   //--------------------------------------------------------------------------
   //
   //  Events
@@ -111,7 +121,8 @@ export class Rating implements LabelableComponent, FormComponent {
   //
   //--------------------------------------------------------------------------
 
-  @Listen("blur") blurHandler(): void {
+  @Listen("blur")
+  blurHandler(): void {
     this.hasFocus = false;
   }
 
@@ -158,10 +169,12 @@ export class Rating implements LabelableComponent, FormComponent {
             id={`${this.guid}-${i}`}
             name={this.guid}
             onChange={() => this.updateValue(i)}
-            onFocus={() => {
-              this.hasFocus = true;
-              this.focusValue = i;
-            }}
+            onClick={(event) =>
+              // click is fired from the the component's label, so we treat this as an internal event
+              event.stopPropagation()
+            }
+            onFocus={() => this.onFocusChange(i)}
+            onKeyDown={this.onKeyboardPressed}
             ref={(el) =>
               (i === 1 || i === this.value) && (this.inputFocusRef = el as HTMLInputElement)
             }
@@ -174,12 +187,13 @@ export class Rating implements LabelableComponent, FormComponent {
   }
 
   render() {
-    const { intlRating, showChip, scale, count, average } = this;
+    const { disabled, intlRating, showChip, scale, count, average } = this;
 
     return (
       <Fragment>
         <fieldset
           class="fieldset"
+          disabled={disabled}
           onBlur={() => (this.hoverValue = null)}
           onMouseLeave={() => (this.hoverValue = null)}
           onTouchEnd={() => (this.hoverValue = null)}
@@ -213,6 +227,22 @@ export class Rating implements LabelableComponent, FormComponent {
     this.calciteRatingChange.emit({ value });
   }
 
+  private onKeyboardPressed = (event: KeyboardEvent): void => {
+    if (!this.required && isActivationKey(event.key)) {
+      event.preventDefault();
+      this.updateValue(0);
+    }
+  };
+
+  private onFocusChange = (selectedRatingValue: number): void => {
+    this.hasFocus = true;
+    if (!this.required && this.focusValue === selectedRatingValue) {
+      this.updateValue(0);
+    } else {
+      this.focusValue = selectedRatingValue;
+    }
+  };
+
   //--------------------------------------------------------------------------
   //
   //  Public Methods
@@ -222,7 +252,7 @@ export class Rating implements LabelableComponent, FormComponent {
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
-    this.inputFocusRef.focus();
+    this.inputFocusRef?.focus();
   }
 
   // --------------------------------------------------------------------------

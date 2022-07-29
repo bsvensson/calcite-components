@@ -11,14 +11,13 @@ import {
   State
 } from "@stencil/core";
 import { CSS, SLOTS, ICONS } from "./resources";
-import { focusElement, getSlotted } from "../../utils/dom";
+import { focusElement, getSlotted, toAriaBoolean } from "../../utils/dom";
 import { Fragment, VNode } from "@stencil/core/internal";
 import { getRoundRobinIndex } from "../../utils/array";
-import { PopperPlacement, OverlayPositioning } from "../../utils/popper";
-import { Placement } from "@popperjs/core";
 import { guid } from "../../utils/guid";
-import { Scale } from "../interfaces";
+import { DeprecatedEventPayload, Scale } from "../interfaces";
 import { createObserver } from "../../utils/observers";
+import { LogicalPlacement, EffectivePlacement, OverlayPositioning } from "../../utils/floating-ui";
 import {
   ConditionalSlotComponent,
   connectConditionalSlotComponent,
@@ -64,7 +63,7 @@ export class ActionMenu implements ConditionalSlotComponent {
   // --------------------------------------------------------------------------
 
   /**
-   * Indicates whether widget is expanded.
+   * When true, the component is expanded.
    */
   @Prop({ reflect: true }) expanded = false;
 
@@ -77,15 +76,15 @@ export class ActionMenu implements ConditionalSlotComponent {
   /**
    * Defines the available placements that can be used when a flip occurs.
    */
-  @Prop() flipPlacements?: Placement[];
+  @Prop() flipPlacements?: EffectivePlacement[];
 
   /**
-   *  Text string for the actions menu.
+   *  Specifies the text string for the component.
    */
   @Prop() label!: string;
 
   /**
-   * Opens the action menu.
+   * When true, the component is open.
    */
   @Prop({ reflect: true, mutable: true }) open = false;
 
@@ -96,19 +95,22 @@ export class ActionMenu implements ConditionalSlotComponent {
       this.menuButtonEl.active = open;
     }
     this.calciteActionMenuOpenChange.emit(open);
+
+    this.setTooltipReferenceElement();
   }
 
-  /** Describes the type of positioning to use for the overlaid content. If your element is in a fixed container, use the 'fixed' value. */
+  /** Determines the type of positioning to use for the overlaid content. If your element is in a fixed container, use the "fixed" value. */
   @Prop() overlayPositioning: OverlayPositioning = "absolute";
 
   /**
-   * Determines where the component will be positioned relative to the referenceElement.
-   * @see [PopperPlacement](https://github.com/Esri/calcite-components/blob/master/src/utils/popper.ts#L25)
+   * Determines where the component will be positioned relative to the `referenceElement`.
+   *
+   * @see [LogicalPlacement](https://github.com/Esri/calcite-components/blob/master/src/utils/floating-ui.ts#L25)
    */
-  @Prop({ reflect: true }) placement: PopperPlacement = "auto";
+  @Prop({ reflect: true }) placement: LogicalPlacement = "auto";
 
   /**
-   * Specifies the size of the menu trigger action.
+   * Specifies the size of the component's trigger `calcite-action`.
    */
   @Prop({ reflect: true }) scale: Scale;
 
@@ -119,11 +121,13 @@ export class ActionMenu implements ConditionalSlotComponent {
   // --------------------------------------------------------------------------
 
   /**
-   * Emitted when the open property has changed.
+   * Emits when the `open` property has changed.
+   *
+   * **Note:**: The event payload is deprecated, please use the `open` property on the component instead
    */
-  @Event() calciteActionMenuOpenChange: EventEmitter;
+  @Event() calciteActionMenuOpenChange: EventEmitter<DeprecatedEventPayload>;
 
-  @Listen("click", { target: "window" })
+  @Listen("pointerdown", { target: "window" })
   closeCalciteActionMenuOnClick(event: Event): void {
     const composedPath = event.composedPath();
 
@@ -157,6 +161,8 @@ export class ActionMenu implements ConditionalSlotComponent {
   menuId = `${this.guid}-menu`;
 
   menuButtonId = `${this.guid}-menu-button`;
+
+  tooltipEl: HTMLCalciteTooltipElement;
 
   @State() activeMenuItemIndex = -1;
 
@@ -204,7 +210,7 @@ export class ActionMenu implements ConditionalSlotComponent {
 
     menuButtonEl.active = open;
     menuButtonEl.setAttribute("aria-controls", menuId);
-    menuButtonEl.setAttribute("aria-expanded", open.toString());
+    menuButtonEl.setAttribute("aria-expanded", toAriaBoolean(open));
     menuButtonEl.setAttribute("aria-haspopup", "true");
 
     if (!menuButtonEl.id) {
@@ -219,9 +225,8 @@ export class ActionMenu implements ConditionalSlotComponent {
       menuButtonEl.text = label;
     }
 
-    menuButtonEl.addEventListener("click", this.menuButtonClick);
+    menuButtonEl.addEventListener("pointerdown", this.menuButtonClick);
     menuButtonEl.addEventListener("keydown", this.menuButtonKeyDown);
-    menuButtonEl.addEventListener("keyup", this.menuButtonKeyUp);
   };
 
   disconnectMenuButtonEl = (): void => {
@@ -231,9 +236,8 @@ export class ActionMenu implements ConditionalSlotComponent {
       return;
     }
 
-    menuButtonEl.removeEventListener("click", this.menuButtonClick);
+    menuButtonEl.removeEventListener("pointerdown", this.menuButtonClick);
     menuButtonEl.removeEventListener("keydown", this.menuButtonKeyDown);
-    menuButtonEl.removeEventListener("keyup", this.menuButtonKeyUp);
   };
 
   setDefaultMenuButtonEl = (el: HTMLCalciteActionElement): void => {
@@ -242,7 +246,7 @@ export class ActionMenu implements ConditionalSlotComponent {
   };
 
   renderMenuButton(): VNode {
-    const { el, label, scale } = this;
+    const { label, scale, expanded } = this;
 
     const menuButtonSlot = (
       <slot name={SLOTS.trigger}>
@@ -252,15 +256,12 @@ export class ActionMenu implements ConditionalSlotComponent {
           ref={this.setDefaultMenuButtonEl}
           scale={scale}
           text={label}
+          textEnabled={expanded}
         />
       </slot>
     );
 
-    return getSlotted(el, SLOTS.tooltip) ? (
-      <calcite-tooltip-manager>{menuButtonSlot}</calcite-tooltip-manager>
-    ) : (
-      menuButtonSlot
-    );
+    return menuButtonSlot;
   }
 
   renderMenuItems(): VNode {
@@ -272,7 +273,8 @@ export class ActionMenu implements ConditionalSlotComponent {
       menuButtonEl,
       label,
       placement,
-      overlayPositioning
+      overlayPositioning,
+      flipPlacements
     } = this;
 
     const activeAction = actionElements[activeMenuItemIndex];
@@ -281,6 +283,7 @@ export class ActionMenu implements ConditionalSlotComponent {
     return (
       <calcite-popover
         disablePointer
+        flipPlacements={flipPlacements}
         label={label}
         offsetDistance={0}
         open={open}
@@ -295,7 +298,6 @@ export class ActionMenu implements ConditionalSlotComponent {
           id={menuId}
           onClick={this.handleCalciteActionClick}
           onKeyDown={this.menuActionsContainerKeyDown}
-          onKeyUp={this.menuActionsContainerKeyUp}
           ref={(el) => (this.menuEl = el)}
           role="menu"
           tabIndex={-1}
@@ -311,7 +313,7 @@ export class ActionMenu implements ConditionalSlotComponent {
       <Fragment>
         {this.renderMenuButton()}
         {this.renderMenuItems()}
-        <slot name={SLOTS.tooltip} />
+        <slot name={SLOTS.tooltip} onSlotchange={this.updateTooltip} />
       </Fragment>
     );
   }
@@ -331,15 +333,22 @@ export class ActionMenu implements ConditionalSlotComponent {
     this.toggleOpen();
   };
 
+  updateTooltip = (event: Event): void => {
+    const tooltips = (event.target as HTMLSlotElement)
+      .assignedElements({
+        flatten: true
+      })
+      .filter((el) => el?.matches("calcite-tooltip")) as HTMLCalciteTooltipElement[];
+
+    this.tooltipEl = tooltips[0];
+    this.setTooltipReferenceElement();
+  };
+
   setTooltipReferenceElement = (): void => {
-    const { el, expanded, menuButtonEl } = this;
+    const { tooltipEl, expanded, menuButtonEl, open } = this;
 
-    const slotted = getSlotted(el, SLOTS.tooltip);
-    const tooltip =
-      slotted?.tagName === "SLOT" ? (slotted as HTMLSlotElement).assignedElements()[0] : slotted;
-
-    if (tooltip?.tagName === "CALCITE-TOOLTIP") {
-      (tooltip as HTMLCalciteTooltipElement).referenceElement = !expanded ? menuButtonEl : null;
+    if (tooltipEl) {
+      tooltipEl.referenceElement = !expanded && !open ? menuButtonEl : null;
     }
   };
 
@@ -361,12 +370,6 @@ export class ActionMenu implements ConditionalSlotComponent {
     actions?.forEach(this.updateAction);
   };
 
-  getAssignedElements(): HTMLElement[] {
-    return Array.from(this.el.querySelectorAll("slot"))
-      .map((slot) => slot.assignedElements({ flatten: true }) as HTMLElement[])
-      .reduce((ar, val) => ar.concat(val), []);
-  }
-
   getActions = (): void => {
     const { el } = this;
 
@@ -383,7 +386,7 @@ export class ActionMenu implements ConditionalSlotComponent {
     return !!supportedKeys.find((k) => k === key);
   }
 
-  menuButtonKeyUp = (event: KeyboardEvent): void => {
+  menuButtonKeyDown = (event: KeyboardEvent): void => {
     const { key } = event;
     const { actionElements } = this;
 
@@ -399,16 +402,6 @@ export class ActionMenu implements ConditionalSlotComponent {
 
     this.toggleOpen(true);
     this.handleActionNavigation(key, actionElements);
-  };
-
-  menuButtonKeyDown = (event: KeyboardEvent): void => {
-    const { key } = event;
-
-    if (!this.isValidKey(key, SUPPORTED_BUTTON_NAV_KEYS)) {
-      return;
-    }
-
-    event.preventDefault();
   };
 
   menuActionsContainerKeyDown = (event: KeyboardEvent): void => {
@@ -427,28 +420,17 @@ export class ActionMenu implements ConditionalSlotComponent {
       return;
     }
 
-    if (this.isValidKey(key, SUPPORTED_MENU_NAV_KEYS)) {
-      event.preventDefault();
-    }
-  };
-
-  menuActionsContainerKeyUp = (event: KeyboardEvent): void => {
-    const { key } = event;
-    const { actionElements } = this;
-
     if (key === "Escape") {
       this.toggleOpen(false);
       return;
     }
 
-    if (!this.isValidKey(key, SUPPORTED_MENU_NAV_KEYS)) {
+    if (!actionElements.length) {
       return;
     }
 
-    event.preventDefault();
-
-    if (!actionElements.length) {
-      return;
+    if (this.isValidKey(key, SUPPORTED_MENU_NAV_KEYS)) {
+      event.preventDefault();
     }
 
     this.handleActionNavigation(key, actionElements);

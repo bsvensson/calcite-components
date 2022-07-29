@@ -11,7 +11,7 @@ import {
   Fragment
 } from "@stencil/core";
 import { CSS, HEADING_LEVEL, ICONS, SLOTS, TEXT } from "./resources";
-import { getElementDir, getSlotted } from "../../utils/dom";
+import { getElementDir, getSlotted, toAriaBoolean } from "../../utils/dom";
 import { Scale } from "../interfaces";
 import { HeadingLevel, Heading } from "../functional/Heading";
 import { SLOTS as ACTION_MENU_SLOTS } from "../action-menu/resources";
@@ -20,13 +20,15 @@ import {
   connectConditionalSlotComponent,
   disconnectConditionalSlotComponent
 } from "../../utils/conditionalSlot";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
+import { createObserver } from "../../utils/observers";
 
 /**
  * @slot - A slot for adding custom content.
- * @slot header-actions-start - A slot for adding actions or content to the start side of the panel header.
- * @slot header-actions-end - A slot for adding actions or content to the end side of the panel header.
+ * @slot header-actions-start - A slot for adding actions or content to the start side of the header.
+ * @slot header-actions-end - A slot for adding actions or content to the end side of the header.
  * @slot header-content - A slot for adding custom content to the header.
- * @slot header-menu-actions - A slot for adding an overflow menu with actions inside a dropdown.
+ * @slot header-menu-actions - A slot for adding an overflow menu with actions inside a `calcite-dropdown`.
  * @slot fab - A slot for adding a `calcite-fab` (floating action button) to perform an action.
  * @slot footer-actions - A slot for adding buttons to the footer.
  * @slot footer - A slot for adding custom content to the footer.
@@ -36,7 +38,7 @@ import {
   styleUrl: "panel.scss",
   shadow: true
 })
-export class Panel implements ConditionalSlotComponent {
+export class Panel implements ConditionalSlotComponent, InteractiveComponent {
   // --------------------------------------------------------------------------
   //
   //  Properties
@@ -44,13 +46,24 @@ export class Panel implements ConditionalSlotComponent {
   // --------------------------------------------------------------------------
 
   /**
-   * Hides the panel.
+   * When true, hides the component.
+   *
+   * @deprecated use closed instead
    */
   @Prop({ mutable: true, reflect: true }) dismissed = false;
 
+  /** When true, panel will be hidden */
+  @Prop({ mutable: true, reflect: true }) closed = false;
+
   @Watch("dismissed")
-  dismissedHandler(): void {
+  dismissedHandler(value: boolean): void {
+    this.closed = value;
     this.calcitePanelDismissedChange.emit();
+  }
+
+  @Watch("closed")
+  closedHandler(value: boolean): void {
+    this.dismissed = value;
   }
 
   /**
@@ -59,69 +72,99 @@ export class Panel implements ConditionalSlotComponent {
   @Prop() beforeBack?: () => Promise<void>;
 
   /**
-   * When true, disabled prevents interaction. This state shows items with lower opacity/grayed.
+   *  When true, interaction is prevented and the component is displayed with lower opacity.
    */
   @Prop({ reflect: true }) disabled = false;
 
   /**
-   * Displays a close button in the trailing side of the header.
+   * When true, a close button is added to the component.
+   *
+   * @deprecated use closable instead
    */
-  @Prop({ reflect: true }) dismissible = false;
+  @Prop({ mutable: true, reflect: true }) dismissible = false;
+
+  @Watch("dismissible")
+  dismissibleHandler(value: boolean): void {
+    this.closable = value;
+  }
+
+  /** When true, displays a close button in the trailing side of the header */
+  @Prop({ mutable: true, reflect: true }) closable = false;
+
+  @Watch("closable")
+  closableHandler(value: boolean): void {
+    this.dismissible = value;
+  }
 
   /**
-   * Number at which section headings should start for this component.
+   * Specifies the number at which section headings should start.
    */
   @Prop() headingLevel: HeadingLevel;
 
   /**
-   * Shows a back button in the header.
+   * When true, displays a back button in the header.
    */
   @Prop({ reflect: true }) showBackButton = false;
 
   /**
-   * 'Back' text string.
+   * Accessible name for the component's back button. The back button will only be shown when 'showBackButton' is true.
    */
   @Prop() intlBack?: string;
 
   /**
-   * Specifies the maxiumum height of the panel.
+   * Specifies the maximum height of the component.
    */
-  @Prop({ reflect: true }) heightScale: Scale;
+  @Prop({ reflect: true }) heightScale?: Scale;
 
   /**
-   * This sets width of the panel.
+   * Specifies the width of the component.
    */
   @Prop({ reflect: true }) widthScale?: Scale;
 
   /**
-   * When true, content is waiting to be loaded. This state shows a busy indicator.
+   * When true, a busy indicator is displayed.
    */
   @Prop({ reflect: true }) loading = false;
 
   /**
-   * 'Close' text string for the close button. The close button will only be shown when 'dismissible' is true.
+   * Accessible name for the component's close button. The close button will only be shown when 'dismissible' is true.
    */
   @Prop() intlClose?: string;
 
   /**
-   * 'Options' text string for the actions menu.
+   * Accessible name for the component's actions menu.
    */
   @Prop() intlOptions?: string;
 
   /**
-   * Heading text.
+   * The component header text.
    */
   @Prop() heading?: string;
 
   /**
    * Summary text. A description displayed underneath the heading.
+   *
+   * @deprecated use description instead
    */
   @Prop() summary?: string;
 
+  /** A description for the component. */
+  @Prop() description: string;
+
   /**
-   * Opens the action menu.
+   * When true, the action menu items in the `header-menu-actions` slot are open.
    */
   @Prop({ reflect: true }) menuOpen = false;
+
+  //--------------------------------------------------------------------------
+  //
+  //  Lifecycle
+  //
+  //--------------------------------------------------------------------------
+
+  componentDidRender(): void {
+    updateHostInteraction(this);
+  }
 
   // --------------------------------------------------------------------------
   //
@@ -133,11 +176,13 @@ export class Panel implements ConditionalSlotComponent {
 
   backButtonEl: HTMLCalciteActionElement;
 
-  dismissButtonEl: HTMLCalciteActionElement;
+  closeButtonEl: HTMLCalciteActionElement;
 
   containerEl: HTMLElement;
 
   panelScrollEl: HTMLElement;
+
+  resizeObserver = createObserver("resize", () => this.resizeHandler());
 
   // --------------------------------------------------------------------------
   //
@@ -147,10 +192,23 @@ export class Panel implements ConditionalSlotComponent {
 
   connectedCallback(): void {
     connectConditionalSlotComponent(this);
+    const isClosed = this.dismissed || this.closed;
+    const isClosable = this.dismissible || this.closable;
+
+    if (isClosed) {
+      this.dismissedHandler(isClosed);
+      this.closedHandler(isClosed);
+    }
+
+    if (isClosable) {
+      this.dismissibleHandler(isClosable);
+      this.closableHandler(isClosable);
+    }
   }
 
   disconnectedCallback(): void {
     disconnectConditionalSlotComponent(this);
+    this.resizeObserver?.disconnect();
   }
 
   // --------------------------------------------------------------------------
@@ -160,19 +218,26 @@ export class Panel implements ConditionalSlotComponent {
   // --------------------------------------------------------------------------
 
   /**
-   * Emitted when the close button has been clicked.
+   * Fires when the close button is clicked.
    */
-  @Event() calcitePanelDismissedChange: EventEmitter;
+  @Event() calcitePanelDismiss: EventEmitter<void>;
 
   /**
-   * Emitted when the content has been scrolled.
+   * Fires when there is a change to the `dismissed` property value .
+   *
+   * @deprecated use calcitePanelDismiss instead.
    */
-  @Event() calcitePanelScroll: EventEmitter;
+  @Event() calcitePanelDismissedChange: EventEmitter<void>;
 
   /**
-   * Emitted when the back button has been clicked.
+   * Fires when the content is scrolled.
    */
-  @Event() calcitePanelBackClick: EventEmitter;
+  @Event() calcitePanelScroll: EventEmitter<void>;
+
+  /**
+   * Fires when the back button is clicked.
+   */
+  @Event() calcitePanelBackClick: EventEmitter<void>;
 
   // --------------------------------------------------------------------------
   //
@@ -180,12 +245,26 @@ export class Panel implements ConditionalSlotComponent {
   //
   // --------------------------------------------------------------------------
 
+  resizeHandler = (): void => {
+    const { panelScrollEl } = this;
+
+    if (
+      !panelScrollEl ||
+      typeof panelScrollEl.scrollHeight !== "number" ||
+      typeof panelScrollEl.offsetHeight !== "number"
+    ) {
+      return;
+    }
+
+    panelScrollEl.tabIndex = panelScrollEl.scrollHeight > panelScrollEl.offsetHeight ? 0 : -1;
+  };
+
   setContainerRef = (node: HTMLElement): void => {
     this.containerEl = node;
   };
 
-  setDismissRef = (node: HTMLCalciteActionElement): void => {
-    this.dismissButtonEl = node;
+  setCloseRef = (node: HTMLCalciteActionElement): void => {
+    this.closeButtonEl = node;
   };
 
   setBackRef = (node: HTMLCalciteActionElement): void => {
@@ -194,12 +273,13 @@ export class Panel implements ConditionalSlotComponent {
 
   panelKeyDownHandler = (event: KeyboardEvent): void => {
     if (event.key === "Escape") {
-      this.dismiss();
+      this.close();
     }
   };
 
-  dismiss = (): void => {
-    this.dismissed = true;
+  close = (): void => {
+    this.closed = true;
+    this.calcitePanelDismiss.emit();
   };
 
   panelScrollHandler = (): void => {
@@ -216,11 +296,15 @@ export class Panel implements ConditionalSlotComponent {
   //
   // --------------------------------------------------------------------------
 
-  /** Sets focus on the component. */
+  /**
+   * Sets focus on the component.
+   *
+   * @param focusId
+   */
   @Method()
   async setFocus(focusId?: "dismiss-button" | "back-button"): Promise<void> {
     if (focusId === "dismiss-button") {
-      this.dismissButtonEl?.setFocus();
+      this.closeButtonEl?.setFocus();
       return;
     }
 
@@ -232,7 +316,8 @@ export class Panel implements ConditionalSlotComponent {
     this.containerEl?.focus();
   }
 
-  /** Scrolls panel content to a particular set of coordinates.
+  /**
+   * Scrolls the component's content to a specified set of coordinates.
    *
    * ```
    *   myCalcitePanel.scrollContentTo({
@@ -241,6 +326,8 @@ export class Panel implements ConditionalSlotComponent {
    *     behavior: "auto" // Specifies whether the scrolling should animate smoothly (smooth), or happen instantly in a single jump (auto, the default value).
    *   });
    * ```
+   *
+   * @param options
    */
   @Method()
   async scrollContentTo(options?: ScrollToOptions): Promise<void> {
@@ -277,19 +364,20 @@ export class Panel implements ConditionalSlotComponent {
   }
 
   renderHeaderContent(): VNode {
-    const { heading, headingLevel, summary } = this;
+    const { heading, headingLevel, summary, description } = this;
     const headingNode = heading ? (
       <Heading class={CSS.heading} level={headingLevel || HEADING_LEVEL}>
         {heading}
       </Heading>
     ) : null;
 
-    const summaryNode = summary ? <span class={CSS.summary}>{summary}</span> : null;
+    const descriptionNode =
+      description || summary ? <span class={CSS.description}>{description || summary}</span> : null;
 
-    return headingNode || summaryNode ? (
+    return headingNode || descriptionNode ? (
       <div class={CSS.headerContent} key="header-content">
         {headingNode}
-        {summaryNode}
+        {descriptionNode}
       </div>
     ) : null;
   }
@@ -319,15 +407,15 @@ export class Panel implements ConditionalSlotComponent {
   }
 
   renderHeaderActionsEnd(): VNode {
-    const { dismiss, dismissible, el, intlClose } = this;
+    const { close, el, intlClose, closable } = this;
     const text = intlClose || TEXT.close;
 
-    const dismissibleNode = dismissible ? (
+    const closableNode = closable ? (
       <calcite-action
         aria-label={text}
         icon={ICONS.close}
-        onClick={dismiss}
-        ref={this.setDismissRef}
+        onClick={close}
+        ref={this.setCloseRef}
         text={text}
       />
     ) : null;
@@ -335,13 +423,13 @@ export class Panel implements ConditionalSlotComponent {
     const slotNode = <slot name={SLOTS.headerActionsEnd} />;
     const hasEndActions = getSlotted(el, SLOTS.headerActionsEnd);
 
-    return hasEndActions || dismissibleNode ? (
+    return hasEndActions || closableNode ? (
       <div
         class={{ [CSS.headerActionsEnd]: true, [CSS.headerActions]: true }}
         key="header-actions-end"
       >
         {slotNode}
-        {dismissibleNode}
+        {closableNode}
       </div>
     ) : null;
   }
@@ -412,6 +500,16 @@ export class Panel implements ConditionalSlotComponent {
     ) : null;
   }
 
+  setPanelScrollEl = (el: HTMLElement): void => {
+    this.panelScrollEl = el;
+    this.resizeObserver?.disconnect();
+
+    if (el) {
+      this.resizeObserver?.observe(el);
+      this.resizeHandler();
+    }
+  };
+
   renderContent(): VNode {
     const { el } = this;
     const hasFab = getSlotted(el, SLOTS.fab);
@@ -424,8 +522,7 @@ export class Panel implements ConditionalSlotComponent {
         class={{ [CSS.contentWrapper]: true, [CSS.contentHeight]: true }}
         key={contentWrapperKey}
         onScroll={this.panelScrollHandler}
-        ref={(el) => (this.panelScrollEl = el)}
-        tabIndex={0}
+        ref={this.setPanelScrollEl}
       >
         <section class={CSS.contentContainer}>{defaultSlotNode}</section>
         {this.renderFab()}
@@ -435,8 +532,7 @@ export class Panel implements ConditionalSlotComponent {
         class={{ [CSS.contentWrapper]: true, [CSS.contentContainer]: true }}
         key={contentWrapperKey}
         onScroll={this.panelScrollHandler}
-        ref={(el) => (this.panelScrollEl = el)}
-        tabIndex={0}
+        ref={this.setPanelScrollEl}
       >
         {defaultSlotNode}
       </section>
@@ -452,16 +548,16 @@ export class Panel implements ConditionalSlotComponent {
   }
 
   render(): VNode {
-    const { dismissed, disabled, dismissible, loading, panelKeyDownHandler } = this;
+    const { loading, panelKeyDownHandler, closed, closable } = this;
 
     const panelNode = (
       <article
-        aria-busy={loading.toString()}
+        aria-busy={toAriaBoolean(loading)}
         class={CSS.container}
-        hidden={dismissible && dismissed}
+        hidden={closed}
         onKeyDown={panelKeyDownHandler}
         ref={this.setContainerRef}
-        tabIndex={dismissible ? 0 : -1}
+        tabIndex={closable ? 0 : -1}
       >
         {this.renderHeaderNode()}
         {this.renderContent()}
@@ -471,7 +567,7 @@ export class Panel implements ConditionalSlotComponent {
 
     return (
       <Fragment>
-        {loading || disabled ? <calcite-scrim loading={loading} /> : null}
+        {loading ? <calcite-scrim loading={loading} /> : null}
         {panelNode}
       </Fragment>
     );

@@ -1,9 +1,9 @@
 import { select, text } from "@storybook/addon-knobs";
-import { boolean } from "../../../.storybook/helpers";
+import { boolean, createSteps, stepStory } from "../../../.storybook/helpers";
 import { themesDarkDefault } from "../../../.storybook/utils";
 import readme1 from "./readme.md";
 import readme2 from "../stepper-item/readme.md";
-import { html } from "../../tests/utils";
+import { html } from "../../../support/formatting";
 
 export default {
   title: "Components/Stepper",
@@ -175,3 +175,19 @@ export const Rtl = (): string => html`
 `;
 
 Rtl.storyName = "RTL";
+
+export const disabled = (): string => html`<calcite-stepper>
+  <calcite-stepper-item item-title="item1" complete>1</calcite-stepper-item>
+  <calcite-stepper-item item-title="item2">2</calcite-stepper-item>
+  <calcite-stepper-item item-title="item3" active>3</calcite-stepper-item>
+  <calcite-stepper-item item-title="item4" disabled>4</calcite-stepper-item>
+</calcite-stepper>`;
+
+export const MinHeight = stepStory(
+  (): string => html`<calcite-stepper style="min-height: 500px;">
+    <calcite-stepper-item item-title="Title one" id="one"> Step one </calcite-stepper-item>
+    <calcite-stepper-item item-title="Title two"> Step two </calcite-stepper-item>
+    <calcite-stepper-item item-title="Title three"> Step three </calcite-stepper-item>
+  </calcite-stepper>`,
+  createSteps("calcite-stepper").click("#one").snapshot("stepper with min-height")
+);

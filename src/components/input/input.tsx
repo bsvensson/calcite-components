@@ -1,4 +1,4 @@
-import { Scale, Status } from "../interfaces";
+import { DeprecatedEventPayload, Scale, Status } from "../interfaces";
 import {
   Component,
   Element,
@@ -14,11 +14,17 @@ import {
 } from "@stencil/core";
 import { getElementDir, getElementProp, getSlotted, setRequestedIcon } from "../../utils/dom";
 
-import { CSS, INPUT_TYPE_ICONS, SLOTS } from "./resources";
+import { CSS, INPUT_TYPE_ICONS, SLOTS, TEXT } from "./resources";
 import { InputPlacement } from "./interfaces";
 import { Position } from "../interfaces";
 import { LabelableComponent, connectLabel, disconnectLabel, getLabelText } from "../../utils/label";
-import { connectForm, disconnectForm, FormComponent, HiddenFormInputSlot } from "../../utils/form";
+import {
+  connectForm,
+  disconnectForm,
+  FormComponent,
+  HiddenFormInputSlot,
+  submitForm
+} from "../../utils/form";
 import {
   getDecimalSeparator,
   delocalizeNumberString,
@@ -26,21 +32,23 @@ import {
 } from "../../utils/locale";
 import { numberKeys } from "../../utils/key";
 import { isValidNumber, parseNumberString, sanitizeNumberString } from "../../utils/number";
-import { CSS_UTILITY, TEXT } from "../../utils/resources";
+import { CSS_UTILITY, TEXT as COMMON_TEXT } from "../../utils/resources";
 import { decimalPlaces } from "../../utils/math";
 import { createObserver } from "../../utils/observers";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 
 type NumberNudgeDirection = "up" | "down";
+type SetValueOrigin = "initial" | "connected" | "user" | "reset" | "direct";
 
 /**
- * @slot action - A slot for positioning a button next to an input
+ * @slot action - A slot for positioning a button next to the component.
  */
 @Component({
   tag: "calcite-input",
   styleUrl: "input.scss",
   shadow: true
 })
-export class Input implements LabelableComponent, FormComponent {
+export class Input implements LabelableComponent, FormComponent, InteractiveComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -55,18 +63,26 @@ export class Input implements LabelableComponent, FormComponent {
   //
   //--------------------------------------------------------------------------
 
-  /** specify the alignment of the value of the input */
+  /** Specifies the text alignment of the component's value. */
   @Prop({ reflect: true }) alignment: Position = "start";
 
-  /** should the input autofocus */
+  /**
+   * When true, the component is focused on page load.
+   *
+   * @mdn [autofocus](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/autofocus)
+   */
   @Prop() autofocus = false;
 
-  /** optionally display a clear button that displays when field has a value
-   * shows by default for search, time, date
-   * will not display for type="textarea" */
+  /**
+   * When true, a clear button is displayed when the component has a value. The clear button shows by default for "search", "time", and "date" types, and will not display for the "textarea" type.
+   */
   @Prop({ reflect: true }) clearable = false;
 
-  /** is the input disabled  */
+  /**
+   * When true, interaction is prevented and the component is displayed with lower opacity.
+   *
+   * @mdn [disabled](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/disabled)
+   */
   @Prop({ reflect: true }) disabled = false;
 
   @Watch("disabled")
@@ -74,42 +90,66 @@ export class Input implements LabelableComponent, FormComponent {
     this.setDisabledAction();
   }
 
-  /** for number values, displays the locale's group separator */
+  /**
+   * When true, number values are displayed with the locale's group separator.
+   */
   @Prop() groupSeparator = false;
 
-  /** when true, the component will not be visible */
+  /**
+   * When true, the component will not be visible.
+   *
+   * @mdn [hidden](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/hidden)
+   */
   @Prop() hidden = false;
 
-  /** when used as a boolean set to true, show a default recommended icon for certain
-   * input types (tel, password, email, date, time, search). You can also pass a
-   * calcite-ui-icon name to this prop to display a requested icon for any input type */
+  /**
+   * When true, shows a default recommended icon. Alternatively, pass a Calcite UI Icon name to display a specific icon.
+   */
   @Prop({ reflect: true }) icon: string | boolean;
 
   /**
-   * string to override English loading text
+   * A text label that will appear on the clear button for screen readers.
+   */
+  @Prop() intlClear?: string;
+
+  /**
+   * Accessible name that will appear while loading.
+   *
    * @default "Loading"
    */
-  @Prop() intlLoading?: string = TEXT.loading;
+  @Prop() intlLoading?: string = COMMON_TEXT.loading;
 
-  /** flip the icon in rtl */
+  /** When true, the icon is flipped in RTL. */
   @Prop({ reflect: true }) iconFlipRtl = false;
 
-  /** Applies to the aria-label attribute on the button or hyperlink */
+  /** Accessible name for the component's button or hyperlink. */
   @Prop() label?: string;
 
-  /** specify if the input is in loading state */
+  /** When true, the component is in the loading state and `calcite-progress` is displayed. */
   @Prop({ reflect: true }) loading = false;
 
-  /** BCP 47 language tag for desired language and country format */
-  @Prop() locale?: string = document.documentElement.lang || "en";
+  /** Specifies the BCP 47 language tag for the desired language and country format. */
+  @Prop() locale: string = document.documentElement.lang || "en";
+
+  /**
+   * Specifies the Unicode numeral system used by the component for localization.
+   *
+   * @mdn [numberingSystem](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Locale/numberingSystem)
+   */
+  @Prop() numberingSystem?: string;
 
   /**
    * Toggles locale formatting for numbers.
+   *
    * @internal
    */
   @Prop() localeFormat = false;
 
-  /** input max */
+  /**
+   * Specifies the maximum value for type "number".
+   *
+   * @mdn [max](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#max)
+   */
   @Prop({ reflect: true }) max?: number;
 
   /** watcher to update number-to-string for max */
@@ -118,7 +158,11 @@ export class Input implements LabelableComponent, FormComponent {
     this.maxString = this.max?.toString() || null;
   }
 
-  /** input min */
+  /**
+   * Specifies the minimum value for type "number".
+   *
+   * @mdn [min](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#min)
+   */
   @Prop({ reflect: true }) min?: number;
 
   /** watcher to update number-to-string for min */
@@ -128,54 +172,81 @@ export class Input implements LabelableComponent, FormComponent {
   }
 
   /**
-   * Maximum length of text input.
+   * Specifies the maximum length of text for the component's value.
+   *
    * @deprecated use maxLength instead
    */
   @Prop({ reflect: true }) maxlength?: number;
 
-  /** Maximum length of the input value */
+  /**
+   * Specifies the maximum length of text for the component's value.
+   *
+   * @mdn [maxlength](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#maxlength)
+   */
   @Prop({ reflect: true }) maxLength?: number;
 
-  /** Minimum length of the text input */
+  /**
+   * Specifies the minimum length of text for the component's value.
+   *
+   * @mdn [minlength](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#minlength)
+   */
   @Prop({ reflect: true }) minLength?: number;
 
-  /** The name of the input */
+  /**
+   * Specifies the name of the component.
+   *
+   * @mdn [name](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#name)
+   */
   @Prop({ reflect: true }) name: string;
 
-  /** specify the placement of the number buttons */
+  /** Specifies the placement of the buttons for type "number". */
   @Prop({ reflect: true }) numberButtonType?: InputPlacement = "vertical";
 
-  /** explicitly whitelist placeholder attribute */
+  /**
+   * Specifies placeholder text for the component.
+   *
+   * @mdn [placeholder](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#placeholder)
+   */
   @Prop() placeholder: string;
 
-  /** optionally add prefix  */
+  /** Adds text to the start of the component. */
   @Prop() prefixText?: string;
 
-  /** When true, a field cannot be modified. */
+  /**
+   * When true, the value cannot be modified.
+   *
+   * @mdn [readOnly](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/readonly)
+   */
   @Prop() readOnly = false;
 
-  /** is the input required */
+  /** When true, the component must have a value in order for the form to submit. */
   @Prop() required = false;
 
-  /** specify the scale of the input, defaults to m */
+  /** Specifies the size of the component. */
   @Prop({ mutable: true, reflect: true }) scale: Scale = "m";
 
-  /** specify the status of the input field, determines message and icons */
+  /** Specifies the status of the input field, which determines message and icons. */
   @Prop({ mutable: true, reflect: true }) status: Status = "idle";
 
-  /** input step */
+  /**
+   * Specifies the granularity that the component's value must adhere to.
+   *
+   * @mdn [step](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/step)
+   */
   @Prop({ reflect: true }) step?: number | "any";
 
-  /** optionally add suffix  **/
+  /** Adds text to the end of the component.  */
   @Prop() suffixText?: string;
 
-  /** @internal adds inline styles for text input when slotted in calcite-inline-editable */
+  /**
+   * @internal
+   */
   @Prop({ mutable: true, reflect: true }) editingEnabled = false;
 
   /**
-   * specify the input type
+   * Specifies the component type.
    *
-   * Note that the following types add type-specific icons by default: `date`, `email`, `password`, `search`, `tel`, `time`
+   * Note that the following types add type-specific icons by default: "date", "email", "password", "search", "tel", "time".
    */
   @Prop({ reflect: true }) type:
     | "color"
@@ -195,16 +266,17 @@ export class Input implements LabelableComponent, FormComponent {
     | "url"
     | "week" = "text";
 
-  /** input value */
+  /** The component's value. */
   @Prop({ mutable: true }) value = "";
 
   @Watch("value")
-  valueWatcher(newValue: string): void {
-    if (!this.internalValueChange) {
+  valueWatcher(newValue: string, previousValue: string): void {
+    if (!this.userChangedValue) {
       this.setValue({
-        origin: "external",
+        origin: "direct",
+        previousValue,
         value:
-          newValue == null
+          newValue == null || newValue == ""
             ? ""
             : this.type === "number"
             ? isValidNumber(newValue)
@@ -214,7 +286,7 @@ export class Input implements LabelableComponent, FormComponent {
       });
       this.warnAboutInvalidNumberValue(newValue);
     }
-    this.internalValueChange = false;
+    this.userChangedValue = false;
   }
 
   @Watch("icon")
@@ -246,9 +318,6 @@ export class Input implements LabelableComponent, FormComponent {
   /** number text input element for locale */
   private childNumberEl?: HTMLInputElement;
 
-  /** whether the value of the input was changed as a result of user typing or not */
-  private internalValueChange = false;
-
   get isClearable(): boolean {
     return !this.isTextarea && (this.clearable || this.type === "search") && this.value.length > 0;
   }
@@ -261,9 +330,11 @@ export class Input implements LabelableComponent, FormComponent {
 
   private maxString?: string;
 
-  private preFocusValue: string;
+  private previousEmittedValue: string;
 
   private previousValue: string;
+
+  private previousValueOrigin: SetValueOrigin = "initial";
 
   /** the computed icon to render */
   private requestedIcon?: string;
@@ -271,6 +342,8 @@ export class Input implements LabelableComponent, FormComponent {
   private nudgeNumberValueIntervalId;
 
   mutationObserver = createObserver("mutation", () => this.setDisabledAction());
+
+  private userChangedValue = false;
 
   //--------------------------------------------------------------------------
   //
@@ -293,11 +366,12 @@ export class Input implements LabelableComponent, FormComponent {
     if (this.inlineEditableEl) {
       this.editingEnabled = this.inlineEditableEl.editingEnabled || false;
     }
+    this.setPreviousEmittedValue(this.value);
     this.setPreviousValue(this.value);
     if (this.type === "number") {
       this.warnAboutInvalidNumberValue(this.value);
       this.setValue({
-        origin: "loading",
+        origin: "connected",
         value: isValidNumber(this.value) ? this.value : ""
       });
     }
@@ -320,6 +394,21 @@ export class Input implements LabelableComponent, FormComponent {
     this.requestedIcon = setRequestedIcon(INPUT_TYPE_ICONS, this.icon, this.type);
   }
 
+  componentShouldUpdate(newValue: string, oldValue: string, property: string): boolean {
+    if (this.type === "number" && property === "value" && newValue && !isValidNumber(newValue)) {
+      this.setValue({
+        origin: "reset",
+        value: oldValue
+      });
+      return false;
+    }
+    return true;
+  }
+
+  componentDidRender(): void {
+    updateHostInteraction(this);
+  }
+
   //--------------------------------------------------------------------------
   //
   //  Events
@@ -329,20 +418,22 @@ export class Input implements LabelableComponent, FormComponent {
   /**
    * @internal
    */
-  @Event() calciteInputFocus: EventEmitter;
+  @Event() calciteInternalInputFocus: EventEmitter<void>;
 
   /**
    * @internal
    */
-  @Event() calciteInputBlur: EventEmitter;
+  @Event() calciteInternalInputBlur: EventEmitter<void>;
 
   /**
-   * This event fires each time a new value is typed.
+   * Fires each time a new value is typed.
+   *
+   * **Note:**: The `el` and `value` event payload props are deprecated, please use the event's target/currentTarget instead
    */
-  @Event({ cancelable: true }) calciteInputInput: EventEmitter;
+  @Event({ cancelable: true }) calciteInputInput: EventEmitter<DeprecatedEventPayload>;
 
   /**
-   * This event fires each time a new value is typed and committed.
+   * Fires each time a new value is typed and committed.
    */
   @Event() calciteInputChange: EventEmitter<void>;
 
@@ -362,6 +453,15 @@ export class Input implements LabelableComponent, FormComponent {
     }
   }
 
+  /** Selects all text of the component's `value`. */
+  @Method()
+  async selectText(): Promise<void> {
+    if (this.type === "number") {
+      this.childNumberEl?.select();
+    } else {
+      this.childEl?.select();
+    }
+  }
   //--------------------------------------------------------------------------
   //
   //  Private Methods
@@ -369,16 +469,15 @@ export class Input implements LabelableComponent, FormComponent {
   //--------------------------------------------------------------------------
 
   keyDownHandler = (event: KeyboardEvent): void => {
-    /* prevent default behavior for input to move the cursor to the beginning of the input with every ArrowUp press */
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-    }
     if (this.readOnly || this.disabled) {
       return;
     }
     if (this.isClearable && event.key === "Escape") {
       this.clearInputValue(event);
       event.preventDefault();
+    }
+    if (event.key === "Enter" && !event.defaultPrevented) {
+      submitForm(this);
     }
   };
 
@@ -410,6 +509,7 @@ export class Input implements LabelableComponent, FormComponent {
     this.setValue({
       committing: true,
       nativeEvent,
+      origin: "user",
       value: finalValue.toFixed(Math.max(inputValPlaces, inputStepPlaces))
     });
   }
@@ -418,22 +518,21 @@ export class Input implements LabelableComponent, FormComponent {
     this.setValue({
       committing: true,
       nativeEvent,
+      origin: "user",
       value: ""
     });
   };
 
-  private inputBlurHandler = () => {
-    if (this.type === "number") {
-      this.setValue({ value: this.value });
-    }
-    this.calciteInputBlur.emit({
-      element: this.childEl,
-      value: this.value
-    });
-
-    if (this.preFocusValue !== this.value) {
+  private emitChangeIfUserModified = (): void => {
+    if (this.previousValueOrigin === "user" && this.value !== this.previousEmittedValue) {
       this.calciteInputChange.emit();
     }
+    this.previousEmittedValue = this.value;
+  };
+
+  private inputBlurHandler = () => {
+    this.calciteInternalInputBlur.emit();
+    this.emitChangeIfUserModified();
   };
 
   private inputFocusHandler = (event: FocusEvent): void => {
@@ -441,12 +540,7 @@ export class Input implements LabelableComponent, FormComponent {
     if (event.target !== slottedActionEl) {
       this.setFocus();
     }
-    this.calciteInputFocus.emit({
-      element: this.childEl,
-      value: this.value
-    });
-
-    this.preFocusValue = this.value;
+    this.calciteInternalInputFocus.emit();
   };
 
   private inputInputHandler = (nativeEvent: InputEvent): void => {
@@ -455,6 +549,7 @@ export class Input implements LabelableComponent, FormComponent {
     }
     this.setValue({
       nativeEvent,
+      origin: "user",
       value: (nativeEvent.target as HTMLInputElement).value
     });
   };
@@ -464,7 +559,7 @@ export class Input implements LabelableComponent, FormComponent {
       return;
     }
     if (event.key === "Enter") {
-      this.calciteInputChange.emit();
+      this.emitChangeIfUserModified();
     }
   };
 
@@ -480,13 +575,15 @@ export class Input implements LabelableComponent, FormComponent {
       }
       this.setValue({
         nativeEvent,
+        origin: "user",
         value: parseNumberString(delocalizedValue)
       });
       this.childNumberEl.value = this.localizedValue;
     } else {
       this.setValue({
         nativeEvent,
-        value: delocalizeNumberString(value, this.locale)
+        origin: "user",
+        value: delocalizedValue
       });
     }
   };
@@ -496,6 +593,8 @@ export class Input implements LabelableComponent, FormComponent {
       return;
     }
     if (event.key === "ArrowUp") {
+      /* prevent default behavior of moving cursor to the beginning of the input when holding down ArrowUp */
+      event.preventDefault();
       this.nudgeNumberValue("up", event);
       return;
     }
@@ -519,7 +618,7 @@ export class Input implements LabelableComponent, FormComponent {
     const isShiftTabEvent = event.shiftKey && event.key === "Tab";
     if (supportedKeys.includes(event.key) && (!event.shiftKey || isShiftTabEvent)) {
       if (event.key === "Enter") {
-        this.calciteInputChange.emit();
+        this.emitChangeIfUserModified();
       }
       return;
     }
@@ -580,18 +679,21 @@ export class Input implements LabelableComponent, FormComponent {
     }, valueNudgeDelayInMs);
   };
 
-  private numberButtonMouseUpAndMouseOutHandler = (): void => {
+  private numberButtonPointerUpAndOutHandler = (): void => {
     window.clearInterval(this.nudgeNumberValueIntervalId);
   };
 
-  private numberButtonMouseDownHandler = (event: MouseEvent): void => {
+  private numberButtonPointerDownHandler = (event: PointerEvent): void => {
     event.preventDefault();
     const direction = (event.target as HTMLDivElement).dataset.adjustment as NumberNudgeDirection;
-    this.nudgeNumberValue(direction, event);
+    if (!this.disabled) {
+      this.nudgeNumberValue(direction, event);
+    }
   };
 
   onFormReset(): void {
     this.setValue({
+      origin: "reset",
       value: this.defaultValue
     });
   }
@@ -646,6 +748,15 @@ export class Input implements LabelableComponent, FormComponent {
     this[`child${this.type === "number" ? "Number" : ""}El`].value = newInputValue;
   };
 
+  private setPreviousEmittedValue = (newPreviousEmittedValue: string): void => {
+    this.previousEmittedValue =
+      this.type === "number"
+        ? isValidNumber(newPreviousEmittedValue)
+          ? newPreviousEmittedValue
+          : ""
+        : newPreviousEmittedValue;
+  };
+
   private setPreviousValue = (newPreviousValue: string): void => {
     this.previousValue =
       this.type === "number"
@@ -658,17 +769,24 @@ export class Input implements LabelableComponent, FormComponent {
   private setValue = ({
     committing = false,
     nativeEvent,
-    origin = "internal",
+    origin,
+    previousValue,
     value
   }: {
     committing?: boolean;
     nativeEvent?: MouseEvent | KeyboardEvent | InputEvent;
-    origin?: "internal" | "external" | "loading";
+    origin: SetValueOrigin;
+    previousValue?: string;
     value: string;
   }): void => {
     const previousLocalizedValue =
       this.type === "number"
-        ? localizeNumberString(this.previousValue, this.locale, this.groupSeparator)
+        ? localizeNumberString(
+            this.previousValue,
+            this.locale,
+            this.groupSeparator,
+            this.numberingSystem
+          )
         : "";
     const sanitizedValue = this.type === "number" ? sanitizeNumberString(value) : value;
     const newValue =
@@ -679,18 +797,19 @@ export class Input implements LabelableComponent, FormComponent {
         : sanitizedValue;
     const newLocalizedValue =
       this.type === "number"
-        ? localizeNumberString(newValue, this.locale, this.groupSeparator)
+        ? localizeNumberString(newValue, this.locale, this.groupSeparator, this.numberingSystem)
         : "";
 
-    this.internalValueChange = origin === "internal";
-    this.setPreviousValue(this.value);
+    this.setPreviousValue(previousValue || this.value);
+    this.previousValueOrigin = origin;
+    this.userChangedValue = origin === "user" && this.value !== newValue;
     this.value = newValue;
 
     if (this.type === "number") {
       this.localizedValue = newLocalizedValue;
     }
 
-    if (origin === "external") {
+    if (origin === "direct") {
       this.setInputValue(this.type === "number" ? newLocalizedValue : newValue);
     }
 
@@ -705,7 +824,7 @@ export class Input implements LabelableComponent, FormComponent {
         this.value = this.previousValue;
         this.localizedValue = previousLocalizedValue;
       } else if (committing) {
-        this.calciteInputChange.emit();
+        this.emitChangeIfUserModified();
       }
     }
   };
@@ -728,7 +847,6 @@ export class Input implements LabelableComponent, FormComponent {
 
   render(): VNode {
     const dir = getElementDir(this.el);
-
     const loader = (
       <div class={CSS.loader}>
         <calcite-progress label={this.intlLoading} type="indeterminate" />
@@ -737,6 +855,7 @@ export class Input implements LabelableComponent, FormComponent {
 
     const inputClearButton = (
       <button
+        aria-label={this.intlClear || TEXT.clear}
         class={CSS.clearButton}
         disabled={this.disabled || this.readOnly}
         onClick={this.clearInputValue}
@@ -765,9 +884,9 @@ export class Input implements LabelableComponent, FormComponent {
         }}
         data-adjustment="up"
         disabled={this.disabled || this.readOnly}
-        onMouseDown={this.numberButtonMouseDownHandler}
-        onMouseOut={this.numberButtonMouseUpAndMouseOutHandler}
-        onMouseUp={this.numberButtonMouseUpAndMouseOutHandler}
+        onPointerDown={this.numberButtonPointerDownHandler}
+        onPointerOut={this.numberButtonPointerUpAndOutHandler}
+        onPointerUp={this.numberButtonPointerUpAndOutHandler}
         tabIndex={-1}
         type="button"
       >
@@ -783,9 +902,9 @@ export class Input implements LabelableComponent, FormComponent {
         }}
         data-adjustment="down"
         disabled={this.disabled || this.readOnly}
-        onMouseDown={this.numberButtonMouseDownHandler}
-        onMouseOut={this.numberButtonMouseUpAndMouseOutHandler}
-        onMouseUp={this.numberButtonMouseUpAndMouseOutHandler}
+        onPointerDown={this.numberButtonPointerDownHandler}
+        onPointerOut={this.numberButtonPointerUpAndOutHandler}
+        onPointerUp={this.numberButtonPointerUpAndOutHandler}
         tabIndex={-1}
         type="button"
       >

@@ -49,18 +49,18 @@ Renders groups of pick list items that are visually separated.
 ```html
 <calcite-pick-list>
   <calcite-pick-list-group group-title="numbers">
-    <calcite-pick-list-item heading="one" description="fish" value="one" icon="grip">
+    <calcite-pick-list-item label="one" description="fish" value="one" icon="grip">
       <calcite-action slot="actions-end" icon="ellipsis"></calcite-action>
     </calcite-pick-list-item>
-    <calcite-pick-list-item heading="two" description="fish" value="two" icon="grip">
+    <calcite-pick-list-item label="two" description="fish" value="two" icon="grip">
       <calcite-action slot="actions-end" icon="ellipsis"></calcite-action>
     </calcite-pick-list-item>
   </calcite-pick-list-group>
   <calcite-pick-list-group group-title="colors">
-    <calcite-pick-list-item heading="red" description="fish" value="red" icon="grip">
+    <calcite-pick-list-item label="red" description="fish" value="red" icon="grip">
       <calcite-action slot="actions-end" icon="ellipsis"></calcite-action>
     </calcite-pick-list-item>
-    <calcite-pick-list-item heading="blue" description="fish" value="blue" icon="grip">
+    <calcite-pick-list-item label="blue" description="fish" value="blue" icon="grip">
       <calcite-action slot="actions-end" icon="ellipsis"></calcite-action>
     </calcite-pick-list-item>
   </calcite-pick-list-group>
@@ -69,31 +69,31 @@ Renders groups of pick list items that are visually separated.
 
 ## Properties
 
-| Property                | Attribute                 | Description                                                                                                                                                                                                                                       | Type                         | Default     |
-| ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | ----------- |
-| `disabled`              | `disabled`                | When true, disabled prevents interaction. This state shows items with lower opacity/grayed.                                                                                                                                                       | `boolean`                    | `false`     |
-| `filterEnabled`         | `filter-enabled`          | When true, an input appears at the top of the list that can be used by end users to filter items in the list.                                                                                                                                     | `boolean`                    | `false`     |
-| `filterPlaceholder`     | `filter-placeholder`      | Placeholder text for the filter input field.                                                                                                                                                                                                      | `string`                     | `undefined` |
-| `headingLevel`          | `heading-level`           | Number at which section headings should start for this component.                                                                                                                                                                                 | `1 \| 2 \| 3 \| 4 \| 5 \| 6` | `undefined` |
-| `loading`               | `loading`                 | When true, content is waiting to be loaded. This state shows a busy indicator.                                                                                                                                                                    | `boolean`                    | `false`     |
-| `multiple`              | `multiple`                | Multiple works similar to standard radio buttons and checkboxes. When true, a user can select multiple items at a time. When false, only a single item can be selected at a time and selecting a new item will deselect any other selected items. | `boolean`                    | `false`     |
-| `selectionFollowsFocus` | `selection-follows-focus` | When true and single-selection is enabled, the selection will change when navigating items via the keyboard.                                                                                                                                      | `boolean`                    | `false`     |
+| Property                | Attribute                 | Description                                                                                                                                                                                                                                                       | Type                         | Default     |
+| ----------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | ----------- |
+| `disabled`              | `disabled`                | When true, interaction is prevented and the component is displayed with lower opacity.                                                                                                                                                                            | `boolean`                    | `false`     |
+| `filterEnabled`         | `filter-enabled`          | When true, an input appears at the top of the list that can be used by end users to filter items in the list.                                                                                                                                                     | `boolean`                    | `false`     |
+| `filterPlaceholder`     | `filter-placeholder`      | Placeholder text for the filter input field.                                                                                                                                                                                                                      | `string`                     | `undefined` |
+| `headingLevel`          | `heading-level`           | Specifies the number at which section headings should start.                                                                                                                                                                                                      | `1 \| 2 \| 3 \| 4 \| 5 \| 6` | `undefined` |
+| `loading`               | `loading`                 | When true, a busy indicator is displayed.                                                                                                                                                                                                                         | `boolean`                    | `false`     |
+| `multiple`              | `multiple`                | Similar to standard radio buttons and checkboxes. When true, a user can select multiple `calcite-pick-list-item`s at a time. When false, only a single `calcite-pick-list-item` can be selected at a time, and a new selection will deselect previous selections. | `boolean`                    | `false`     |
+| `selectionFollowsFocus` | `selection-follows-focus` | When true and single-selection is enabled, the selection changes when navigating `calcite-pick-list-item`s via keyboard.                                                                                                                                          | `boolean`                    | `false`     |
 
 ## Events
 
-| Event               | Description                                           | Type                            |
-| ------------------- | ----------------------------------------------------- | ------------------------------- |
-| `calciteListChange` | Emitted when any of the item selections have changed. | `CustomEvent<Map<string, any>>` |
+| Event               | Description                                                             | Type                                                       |
+| ------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `calciteListChange` | Emits when any of the `calcite-pick-list-item` selections have changed. | `CustomEvent<Map<string, HTMLCalcitePickListItemElement>>` |
 
 ## Methods
 
 ### `getSelectedItems() => Promise<Map<string, HTMLCalcitePickListItemElement>>`
 
-Returns the currently selected items
+Returns the component's selected `calcite-pick-list-item`s.
 
 #### Returns
 
-Type: `Promise<Map<string, any>>`
+Type: `Promise<Map<string, HTMLCalcitePickListItemElement>>`
 
 ### `setFocus(focusId?: ListFocusId) => Promise<void>`
 
@@ -105,10 +105,10 @@ Type: `Promise<void>`
 
 ## Slots
 
-| Slot             | Description                                                                                                                        |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-|                  | A slot for adding `calcite-pick-list-item` elements or `calcite-pick-list-group` elements. Items are displayed as a vertical list. |
-| `"menu-actions"` | A slot for adding a button + menu combo for performing actions like sorting.                                                       |
+| Slot             | Description                                                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------- |
+|                  | A slot for adding `calcite-pick-list-item` or `calcite-pick-list-group` elements. Items are displayed as a vertical list. |
+| `"menu-actions"` | A slot for adding a button and menu combination for performing actions, such as sorting.                                  |
 
 ## Dependencies
 
@@ -123,12 +123,10 @@ Type: `Promise<void>`
 graph TD;
   calcite-pick-list --> calcite-filter
   calcite-pick-list --> calcite-scrim
-  calcite-filter --> calcite-scrim
   calcite-filter --> calcite-input
-  calcite-filter --> calcite-icon
-  calcite-scrim --> calcite-loader
   calcite-input --> calcite-progress
   calcite-input --> calcite-icon
+  calcite-scrim --> calcite-loader
   style calcite-pick-list fill:#f9f,stroke:#333,stroke-width:4px
 ```
 

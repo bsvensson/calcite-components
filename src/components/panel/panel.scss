@@ -3,14 +3,14 @@
  *
  * These properties can be overridden using the component's tag as selector.
  *
- * @prop --calcite-panel-max-height: the maximum height of the panel
- * @prop --calcite-panel-max-width: the maximum width of the panel
- * @prop --calcite-panel-min-width: the minimum width of the panel
+ * @prop --calcite-panel-max-height: The maximum height of the component.
+ * @prop --calcite-panel-max-width: The maximum width of the component.
+ * @prop --calcite-panel-min-width: The minimum width of the component.
  */
 
 :host {
   @extend %component-host;
-  @apply flex flex-auto overflow-hidden relative w-full;
+  @apply relative flex w-full flex-auto overflow-hidden;
 
   --calcite-min-header-height: calc(var(--calcite-icon-size) * 3);
   --calcite-panel-max-height: unset;
@@ -19,16 +19,18 @@
   --calcite-panel-max-width: unset;
 }
 
+@include disabled();
+
 @import "../../assets/styles/header";
 
 .container {
-  @apply flex flex-auto flex-col items-stretch bg-background w-full p-0 m-0;
+  @apply bg-background m-0 flex w-full flex-auto flex-col items-stretch p-0;
 
-  max-height: var(--calcite-panel-max-height);
-  width: var(--calcite-panel-width);
-  max-width: var(--calcite-panel-max-width);
-  min-width: var(--calcite-panel-min-width);
-  transition: max-height var(--calcite-animation-timing), width var(--calcite-animation-timing);
+  max-block-size: var(--calcite-panel-max-height);
+  inline-size: var(--calcite-panel-width);
+  max-inline-size: var(--calcite-panel-max-width);
+  min-inline-size: var(--calcite-panel-min-width);
+  transition: max-block-size var(--calcite-animation-timing), inline-size var(--calcite-animation-timing);
 }
 
 :host([height-scale="s"]) {
@@ -72,54 +74,54 @@
 }
 
 .header {
-  border-bottom: 1px solid;
-  @apply items-stretch
-    bg-foreground-1
-    justify-start
+  border-block-end: 1px solid;
+  @apply bg-foreground-1
+    border-b-color-3
     sticky
     top-0
-    border-b-color-3
-    w-full;
+    w-full
+    items-stretch
+    justify-start;
   flex: 0 0 auto;
   z-index: 2;
 }
 
 .header-content {
-  @apply overflow-hidden
+  @apply flex
+    flex-col
+    overflow-hidden
     px-3
-    py-3.5
-    flex
-    flex-col;
+    py-3.5;
   margin-inline-end: auto;
   .heading,
-  .summary {
-    @apply p-0
-      block
-      break-words;
+  .description {
+    @apply block
+      break-words
+      p-0;
   }
   .heading {
-    @apply font-medium mt-0 mx-0 mb-1 text-0h;
+    @apply text-0h mx-0 mt-0 mb-1 font-medium;
     &:only-child {
       @apply mb-0;
     }
   }
-  .summary {
+  .description {
     @apply text-color-2 text-n1h;
   }
 }
 
 .back-button {
   @apply border-color-3
-  border-solid
-  border-0;
+  border-0
+  border-solid;
   border-inline-end-width: theme("borderWidth.DEFAULT");
 }
 
 .header-actions {
   @apply flex
-  items-stretch
   flex-row
-  flex-nowrap;
+  flex-nowrap
+  items-stretch;
 }
 
 .header-actions--end,
@@ -128,13 +130,13 @@
 }
 
 .menu-button {
-  @apply self-stretch
-    flex-initial
+  @apply relative
     h-full
-    relative;
+    flex-initial
+    self-stretch;
 }
 .menu {
-  min-width: theme("spacing.40");
+  min-inline-size: theme("spacing.40");
   flex-flow: column nowrap;
 }
 
@@ -147,38 +149,39 @@
 }
 
 .content-container {
-  @apply items-stretch
-  bg-background
+  @apply bg-background
   flex
   flex-auto
+  flex-col
   flex-nowrap
-  flex-col;
+  items-stretch;
+  z-index: 1;
 }
 
 .footer {
-  border-top: 1px solid;
+  border-block-start: 1px solid;
   @apply bg-foreground-1
   border-t-color-3
-  flex
-  justify-evenly
   sticky
   bottom-0
-  w-full;
+  flex
+  w-full
+  justify-evenly;
 
   flex: 0 0 auto;
-  min-height: theme("spacing.12");
+  min-block-size: theme("spacing.12");
   padding: theme("spacing.2");
 }
 
 .fab-container {
-  @apply block
-  sticky
-  my-0
-  mx-auto
-  p-2
+  @apply sticky
   bottom-0
   left-0
-  right-0;
-  width: fit-content;
+  right-0
+  my-0
+  mx-auto
+  block
+  p-2;
+  inline-size: fit-content;
   z-index: 1;
 }

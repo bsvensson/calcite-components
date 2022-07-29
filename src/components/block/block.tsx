@@ -1,6 +1,6 @@
 import { Component, Element, Event, EventEmitter, h, Host, Prop, VNode } from "@stencil/core";
 import { CSS, HEADING_LEVEL, ICONS, SLOTS, TEXT } from "./resources";
-import { getSlotted } from "../../utils/dom";
+import { getSlotted, toAriaBoolean } from "../../utils/dom";
 import { Heading, HeadingLevel } from "../functional/Heading";
 import { Status } from "../interfaces";
 import {
@@ -8,6 +8,8 @@ import {
   connectConditionalSlotComponent,
   disconnectConditionalSlotComponent
 } from "../../utils/conditionalSlot";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
+import { guid } from "../../utils/guid";
 
 /**
  * @slot - A slot for adding content to the block.
@@ -20,7 +22,7 @@ import {
   styleUrl: "block.scss",
   shadow: true
 })
-export class Block implements ConditionalSlotComponent {
+export class Block implements ConditionalSlotComponent, InteractiveComponent {
   // --------------------------------------------------------------------------
   //
   //  Properties
@@ -53,21 +55,29 @@ export class Block implements ConditionalSlotComponent {
   @Prop() headingLevel: HeadingLevel;
 
   /**
-   * Tooltip used for the toggle when expanded.
+   * Aria-label for collapsing the toggle and tooltip used for the toggle when expanded.
+   *
+   * @default "Collapse"
    */
-  @Prop() intlCollapse?: string;
+  @Prop() intlCollapse?: string = TEXT.collapse;
 
   /**
-   * Tooltip used for the toggle when collapsed.
+   * Aria-label for expanding the toggle and tooltip used for the toggle when collapsed.
+   *
+   * @default "Expand"
    */
-  @Prop() intlExpand?: string;
+  @Prop() intlExpand?: string = TEXT.expand;
 
-  /** string to override English loading text
+  /**
+   * string to override English loading text
+   *
    * @default "Loading"
    */
   @Prop() intlLoading?: string = TEXT.loading;
 
-  /** Text string used for the actions menu
+  /**
+   * Text string used for the actions menu
+   *
    * @default "Options"
    */
   @Prop() intlOptions?: string = TEXT.options;
@@ -89,8 +99,30 @@ export class Block implements ConditionalSlotComponent {
 
   /**
    * Block summary.
+   *
+   * @deprecated use description instead
    */
   @Prop() summary: string;
+
+  /**Block description */
+  @Prop() description: string;
+
+  /**
+   * When true, removes padding for the slotted content
+   *
+   * @deprecated Use `--calcite-block-padding` CSS variable instead.
+   */
+  @Prop() disablePadding = false;
+
+  //--------------------------------------------------------------------------
+  //
+  //  Lifecycle
+  //
+  //--------------------------------------------------------------------------
+
+  componentDidRender(): void {
+    updateHostInteraction(this);
+  }
 
   // --------------------------------------------------------------------------
   //
@@ -99,6 +131,8 @@ export class Block implements ConditionalSlotComponent {
   // --------------------------------------------------------------------------
 
   @Element() el: HTMLCalciteBlockElement;
+
+  private guid = guid();
 
   // --------------------------------------------------------------------------
   //
@@ -123,7 +157,7 @@ export class Block implements ConditionalSlotComponent {
   /**
    * Emitted when the header has been clicked.
    */
-  @Event() calciteBlockToggle: EventEmitter;
+  @Event() calciteBlockToggle: EventEmitter<void>;
 
   // --------------------------------------------------------------------------
   //
@@ -143,11 +177,10 @@ export class Block implements ConditionalSlotComponent {
   // --------------------------------------------------------------------------
 
   renderScrim(): VNode[] {
-    const { disabled, loading } = this;
-
+    const { loading } = this;
     const defaultSlot = <slot />;
 
-    return [loading || disabled ? <calcite-scrim loading={loading} /> : null, defaultSlot];
+    return [loading ? <calcite-scrim loading={loading} /> : null, defaultSlot];
   }
 
   renderIcon(): VNode[] {
@@ -178,20 +211,21 @@ export class Block implements ConditionalSlotComponent {
   }
 
   renderTitle(): VNode {
-    const { heading, headingLevel, summary } = this;
-    return heading || summary ? (
+    const { heading, headingLevel, summary, description } = this;
+    return heading || summary || description ? (
       <div class={CSS.title}>
         <Heading class={CSS.heading} level={headingLevel || HEADING_LEVEL}>
           {heading}
         </Heading>
-        {summary ? <div class={CSS.summary}>{summary}</div> : null}
+        {summary || description ? (
+          <div class={CSS.description}>{summary || description}</div>
+        ) : null}
       </div>
     ) : null;
   }
 
   render(): VNode {
-    const { collapsible, disabled, el, intlCollapse, intlExpand, loading, open, intlLoading } =
-      this;
+    const { collapsible, el, intlCollapse, intlExpand, loading, open, intlLoading } = this;
 
     const toggleLabel = open ? intlCollapse || TEXT.collapse : intlExpand || TEXT.expand;
 
@@ -206,14 +240,20 @@ export class Block implements ConditionalSlotComponent {
     const hasMenuActions = !!getSlotted(el, SLOTS.headerMenuActions);
     const collapseIcon = open ? ICONS.opened : ICONS.closed;
 
+    const { guid } = this;
+    const regionId = `${guid}-region`;
+    const buttonId = `${guid}-button`;
+
     const headerNode = (
       <div class={CSS.headerContainer}>
         {this.dragHandle ? <calcite-handle /> : null}
         {collapsible ? (
           <button
-            aria-expanded={collapsible ? open.toString() : null}
+            aria-controls={regionId}
+            aria-expanded={collapsible ? toAriaBoolean(open) : null}
             aria-label={toggleLabel}
             class={CSS.toggle}
+            id={buttonId}
             onClick={this.onHeaderClick}
             title={toggleLabel}
           >
@@ -246,17 +286,26 @@ export class Block implements ConditionalSlotComponent {
     );
 
     return (
-      <Host tabIndex={disabled ? -1 : null}>
+      <Host>
         <article
-          aria-busy={loading.toString()}
+          aria-busy={toAriaBoolean(loading)}
           class={{
             [CSS.article]: true
           }}
         >
           {headerNode}
-          <div class={CSS.content} hidden={!open}>
+          <section
+            aria-expanded={toAriaBoolean(open)}
+            aria-labelledby={buttonId}
+            class={{
+              content: true,
+              "content--spaced": !this.disablePadding
+            }}
+            hidden={!open}
+            id={regionId}
+          >
             {this.renderScrim()}
-          </div>
+          </section>
         </article>
       </Host>
     );

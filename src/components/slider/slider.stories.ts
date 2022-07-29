@@ -2,7 +2,7 @@ import { text, number, array, boolean as booleanFn, select } from "@storybook/ad
 import { boolean } from "../../../.storybook/helpers";
 import { themesDarkDefault } from "../../../.storybook/utils";
 import readme from "./readme.md";
-import { html } from "../../tests/utils";
+import { html } from "../../../support/formatting";
 
 export default {
   title: "Components/Controls/Slider",
@@ -18,7 +18,7 @@ export const SingleValue = (): string => html`
     max="${number("max", 100)}"
     value="${number("value", 50)}"
     step="${number("step", 1)}"
-    label="${text("label", "Temperature")}"
+    min-label="${text("min-label", "Temperature")}"
     ${boolean("disabled", false)}
     ${boolean("label-handles", false)}
     ${boolean("label-ticks", false)}
@@ -281,3 +281,18 @@ export const HistogramDark = (): HTMLCalciteSliderElement => {
 
 HistogramDark.storyName = "Histogram Dark theme";
 HistogramDark.parameters = { themes: themesDarkDefault };
+
+export const disabled = (): string => html`<calcite-slider disabled value="5"></calcite-slider>`;
+
+export const wordBreakDoesNotAffectLabels = (): string =>
+  html`<calcite-slider
+    min="-100"
+    max="100"
+    min-value="-100"
+    max-value="100"
+    step="10"
+    ticks="10"
+    label-handles
+    label-ticks
+    style="word-break: break-all"
+  ></calcite-slider>`;

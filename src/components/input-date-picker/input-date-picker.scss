@@ -1,18 +1,20 @@
 :host {
   @extend %component-spacing;
-  @include popperElemAnim(".menu-container");
-  @apply shadow-none
+  @include floatingUIElemAnim(".menu-container");
+  @apply relative
     inline-block
-    align-top
     w-full
-    relative
-    overflow-visible;
+    overflow-visible
+    align-top
+    shadow-none;
 }
 
+@include disabled();
+
 .calendar-picker-wrapper {
-  @apply shadow-none
-    static
-    w-full;
+  @apply static
+    w-full
+    shadow-none;
   transform: translate3d(0, 0, 0);
 }
 
@@ -31,15 +33,15 @@
 
   .horizontal-arrow-container {
     @apply bg-background
-      py-0
-      px-1
-      border
-      border-solid
       border-color-input
+      flex
+      items-center
+      border
       border-l-0
       border-r-0
-      flex
-      items-center;
+      border-solid
+      py-0
+      px-1;
   }
 }
 
@@ -58,42 +60,49 @@
   }
 
   .vertical-arrow-container {
-    top: theme("spacing.6");
-    @apply left-0
-      px-2.5
-      mx-px
+    inset-block-start: theme("spacing.6");
+    @apply bg-foreground-1
       absolute
+      left-0
       z-10
-      bg-foreground-1;
+      mx-px
+      px-2.5;
   }
 }
 
 :host([scale="s"][range]:not([layout="vertical"])) {
   .calendar-picker-wrapper {
-    width: 216px;
+    inline-size: 216px;
   }
 }
 
 :host([scale="m"][range]:not([layout="vertical"])) {
   .calendar-picker-wrapper {
-    width: 286px;
+    inline-size: 286px;
   }
 }
 
 :host([scale="l"][range]:not([layout="vertical"])) {
   .calendar-picker-wrapper {
-    width: 398px;
+    inline-size: 398px;
   }
 }
 
 .menu-container {
-  @include popperContainer();
+  @include floatingUIContainer();
+  @include floatingUIWrapper();
   @apply invisible
     pointer-events-none;
 }
-:host([active]) .menu-container {
-  @apply visible
-    pointer-events-auto;
+
+@include floatingUIElemAnim(".menu-container");
+
+:host([open]) .menu-container {
+  @include floatingUIWrapperActive();
+}
+
+.menu-container--active {
+  @include floatingUIWrapperActive();
 }
 
 .input .calcite-input__wrapper {
@@ -101,22 +110,22 @@
 }
 
 :host([range][layout="vertical"][scale="m"]) .vertical-arrow-container {
-  top: theme("spacing.6");
-  @apply pl-3;
+  inset-block-start: theme("spacing.6");
+  padding-inline-start: theme("spacing.3");
 
   calcite-icon {
-    @apply w-3
-      h-3
+    @apply h-3
+      w-3
       min-w-0;
   }
 }
 
 :host([range][layout="vertical"][scale="l"]) .vertical-arrow-container {
-  top: theme("spacing.9");
+  inset-block-start: theme("spacing.9");
   @apply px-3.5;
 }
 
-:host([range][layout="vertical"][active]) {
+:host([range][layout="vertical"][open]) {
   .vertical-arrow-container {
     @apply hidden;
   }

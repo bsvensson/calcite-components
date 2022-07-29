@@ -23,6 +23,7 @@ import {
 } from "../../utils/form";
 import { CSS } from "./resources";
 import { createObserver } from "../../utils/observers";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 
 type OptionOrGroup = HTMLCalciteOptionElement | HTMLCalciteOptionGroupElement;
 type NativeOptionOrGroup = HTMLOptionElement | HTMLOptGroupElement;
@@ -45,7 +46,7 @@ function isOptionGroup(
   styleUrl: "select.scss",
   shadow: true
 })
-export class Select implements LabelableComponent, FormComponent {
+export class Select implements LabelableComponent, FormComponent, InteractiveComponent {
   //--------------------------------------------------------------------------
   //
   //  Properties
@@ -154,6 +155,10 @@ export class Select implements LabelableComponent, FormComponent {
     afterConnectDefaultValueSet(this, this.selectedOption?.value ?? "");
   }
 
+  componentDidRender(): void {
+    updateHostInteraction(this);
+  }
+
   //--------------------------------------------------------------------------
   //
   //  Public Methods
@@ -183,8 +188,8 @@ export class Select implements LabelableComponent, FormComponent {
     requestAnimationFrame(() => this.emitChangeEvent());
   };
 
-  @Listen("calciteOptionChange")
-  @Listen("calciteOptionGroupChange")
+  @Listen("calciteInternalOptionChange")
+  @Listen("calciteInternalOptionGroupChange")
   protected handleOptionOrGroupChange(event: CustomEvent): void {
     event.stopPropagation();
 

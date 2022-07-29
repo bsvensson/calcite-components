@@ -8,7 +8,7 @@ import {
 } from "../../../.storybook/utils";
 import readme from "./readme.md";
 import { ATTRIBUTES } from "../../../.storybook/resources";
-import { html } from "../../tests/utils";
+import { html } from "../../../support/formatting";
 import { TEXT } from "./resources";
 
 export default {
@@ -118,3 +118,21 @@ export const withTooltip = (): string =>
       <calcite-action text="Add" icon="plus"></calcite-action>
     `
   );
+
+export const withDefinedWidths = (): string =>
+  html`
+    <style>
+      calcite-action-pad {
+        --calcite-action-pad-expanded-max-width: 150px;
+      }
+    </style>
+    <calcite-action-pad expanded>
+      <calcite-action-group>
+        <calcite-action text="Add to my custom action pad application" icon="plus"></calcite-action>
+        <calcite-action text="Save to my custom action pad application" icon="save"></calcite-action>
+      </calcite-action-group>
+      <calcite-action-group>
+        <calcite-action text="Layers in my custom action pad application" icon="layers"></calcite-action>
+      </calcite-action-group>
+    </calcite-action-pad>
+  `;

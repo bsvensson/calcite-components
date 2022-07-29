@@ -6,6 +6,7 @@ import {
   connectConditionalSlotComponent,
   disconnectConditionalSlotComponent
 } from "../../utils/conditionalSlot";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 
 /**
  * @slot content-start - A slot for adding non-actionable elements before the tile content.
@@ -16,7 +17,7 @@ import {
   styleUrl: "tile.scss",
   shadow: true
 })
-export class Tile implements ConditionalSlotComponent {
+export class Tile implements ConditionalSlotComponent, InteractiveComponent {
   // --------------------------------------------------------------------------
   //
   //  Private Properties
@@ -47,6 +48,7 @@ export class Tile implements ConditionalSlotComponent {
 
   /**
    * The focused state of the tile.
+   *
    * @internal
    */
   @Prop({ reflect: true }) focused = false;
@@ -75,6 +77,10 @@ export class Tile implements ConditionalSlotComponent {
 
   disconnectedCallback(): void {
     disconnectConditionalSlotComponent(this);
+  }
+
+  componentDidRender(): void {
+    updateHostInteraction(this);
   }
 
   // --------------------------------------------------------------------------

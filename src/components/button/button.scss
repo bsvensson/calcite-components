@@ -22,31 +22,30 @@
 // button base
 :host button,
 :host a {
-  --calcite-button-content-margin: theme("margin.2"); // s 8px
+  --calcite-button-content-margin: theme("margin.2");
   --calcite-button-padding-x: 7px;
   --calcite-button-padding-y: 3px;
-  padding: var(--calcite-button-padding-y) var(--calcite-button-padding-x) var(--calcite-button-padding-y)
-    var(--calcite-button-padding-x);
-  @apply relative
+  padding-block: var(--calcite-button-padding-y);
+  padding-inline: var(--calcite-button-padding-x);
+  @apply font-inherit
+    relative
+    box-border
     flex
-    items-center
-    justify-center
-    no-underline
-    w-full
     h-full
-    rounded-none
-    border-none
+    w-full
+    cursor-pointer
     select-none
     appearance-none
-    cursor-pointer
+    items-center
+    justify-center
+    rounded-none
+    border-none
     text-center
-    box-border
-    font-inherit
-    font-normal;
+    font-normal
+    no-underline;
   // include transition from focus
   transition: color var(--calcite-animation-timing) ease-in-out,
     background-color var(--calcite-animation-timing) ease-in-out, box-shadow var(--calcite-animation-timing) ease-in-out,
-    outline-offset var(--calcite-internal-animation-timing-fast) ease-in-out,
     outline-color var(--calcite-internal-animation-timing-fast) ease-in-out;
   &:hover {
     @apply no-underline;
@@ -56,8 +55,7 @@
 .content {
   @apply flex;
   flex-basis: auto;
-  margin-inline-start: var(--calcite-button-content-margin);
-  margin-inline-end: var(--calcite-button-content-margin);
+  margin-inline: var(--calcite-button-content-margin);
 }
 
 .icon-start-empty {
@@ -152,43 +150,43 @@
 }
 
 .icon {
-  @apply inline-flex
-    relative
+  @apply relative
     m-0
+    inline-flex
     font-normal;
   line-height: inherit;
 }
 
-// disabled styles
-:host([loading]),
-:host([disabled]) {
+@include disabled();
+
+:host([loading]) {
   @apply pointer-events-none;
   button,
   a {
-    @apply pointer-events-none opacity-disabled;
+    @apply opacity-disabled pointer-events-none;
   }
 }
 
 @keyframes loader-in {
   0% {
-    width: 0;
+    inline-size: 0;
     opacity: 0;
     transform: scale(0.5);
   }
   100% {
-    width: 1em;
+    inline-size: 1em;
     opacity: 1;
     transform: scale(1);
   }
 }
 @keyframes loader-out {
   0% {
-    width: 1em;
+    inline-size: 1em;
     opacity: 1;
     transform: scale(1);
   }
   100% {
-    width: 0;
+    inline-size: 0;
     opacity: 0;
     transform: scale(0.5);
   }
@@ -198,7 +196,7 @@
   @apply flex;
   calcite-loader {
     @apply m-0;
-    transition: width var(--calcite-internal-animation-timing-slow) ease-in-out,
+    transition: inline-size var(--calcite-internal-animation-timing-slow) ease-in-out,
       opacity var(--calcite-internal-animation-timing-slow) ease-in-out,
       transform var(--calcite-internal-animation-timing-slow) ease-in-out;
     &.loading-in {
@@ -235,9 +233,9 @@
 :host([appearance="solid"]) {
   button,
   a {
-    @apply border
-      border-solid
-      border-color-transparent;
+    @apply border-color-transparent
+      border
+      border-solid;
   }
 }
 :host([appearance="solid"][color="blue"]) {
@@ -408,7 +406,7 @@
 :host([appearance="clear"]) {
   button,
   a {
-    @apply bg-transparent border border-solid;
+    @apply border border-solid bg-transparent;
     box-shadow: inset 0 0 0 1px transparent;
   }
 }
@@ -579,12 +577,11 @@
 :host([appearance="transparent"][color="neutral"].cancel-editing-button) {
   button {
     @apply text-color-3
-      border-t
       border-t-color-input
-      border-b
-      border-b-color-input;
-    border-bottom-style: solid;
-    border-top-style: solid;
+      border-b-color-input
+      border-t
+      border-b;
+    border-block-style: solid;
 
     &:not(.content--slotted) {
       --calcite-button-padding-y: 0;
@@ -668,7 +665,7 @@
   --calcite-button-padding-x: theme("padding[0.5]");
   --calcite-button-padding-y: 3px;
   @apply text-0h w-6;
-  min-height: theme("height.6");
+  min-block-size: theme("height.6");
 }
 // accommodate for transparent buttons not having borders
 :host([scale="s"][appearance="transparent"]) button:not(.content--slotted),
@@ -680,7 +677,7 @@
   --calcite-button-padding-x: theme("padding[0.5]");
   --calcite-button-padding-y: 7px;
   @apply text-0h w-8;
-  min-height: theme("height.8");
+  min-block-size: theme("height.8");
 }
 // accommodate for transparent buttons not having borders
 :host([scale="m"][appearance="transparent"]) button:not(.content--slotted),
@@ -692,7 +689,7 @@
   --calcite-button-padding-x: theme("padding[0.5]");
   --calcite-button-padding-y: 9px;
   @apply text-0h w-11;
-  min-height: theme("height.11");
+  min-block-size: theme("height.11");
 }
 // accommodate for transparent buttons not having borders
 :host([scale="l"][appearance="transparent"]) button:not(.content--slotted),

@@ -37,7 +37,7 @@ function createLocaleDateTimeFormatter(locale: string, includeSeconds = true): I
       options.second = "2-digit";
     }
     return new Intl.DateTimeFormat(locale, options);
-  } catch (e) {
+  } catch (error) {
     throw new Error(`Invalid locale supplied while attempting to create a DateTime formatter: ${locale}`);
   }
 }
@@ -186,6 +186,20 @@ export function localizeTimeStringToParts(value: string, locale = "en"): Localiz
       localizedSecondSuffix: getLocalizedTimePart("secondSuffix", parts),
       localizedMeridiem: getLocalizedTimePart("meridiem", parts)
     };
+  }
+  return null;
+}
+
+export function getTimeParts(value: string, locale = "en"): Intl.DateTimeFormatPart[] {
+  if (!isValidTime(value)) {
+    return null;
+  }
+  const { hour, minute, second = "0" } = parseTimeString(value);
+  const dateFromTimeString = new Date(Date.UTC(0, 0, 0, parseInt(hour), parseInt(minute), parseInt(second)));
+  if (dateFromTimeString) {
+    const formatter = createLocaleDateTimeFormatter(locale);
+    const parts = formatter.formatToParts(dateFromTimeString);
+    return parts;
   }
   return null;
 }

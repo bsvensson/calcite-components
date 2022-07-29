@@ -1,21 +1,12 @@
 :host {
   @extend %component-host;
   @extend %component-spacing;
-
-  @apply flex
-    flex-grow-0
-    flex-shrink-0
-    flex-col
-    p-0
-    transition-margin
-    duration-150
-    ease-cubic
-    border-0
-    border-b
-    border-color-3
-    border-solid;
+  @apply transition-margin ease-cubic border-color-3 flex flex-shrink-0 flex-grow-0
+    flex-col border-0 border-b border-solid p-0 duration-150;
   flex-basis: auto;
 }
+
+@include disabled();
 
 @import "../../assets/styles/header";
 
@@ -37,16 +28,16 @@
 }
 
 .toggle {
-  @apply flex
-    flex-nowrap
-    justify-between
-    font-inherit
-    items-center
+  @apply font-inherit
+    focus-base
     m-0
-    p-0
-    border-none
+    flex
     cursor-pointer
-    focus-base;
+    flex-nowrap
+    items-center
+    justify-between
+    border-none
+    p-0;
   text-align: initial;
 
   background-color: transparent;
@@ -73,23 +64,23 @@ calcite-handle {
 }
 
 .header .title .heading {
-  @apply p-0
-    text-n1
+  @apply text-n1
     text-color-2
-    font-medium
     word-break
-    leading-tight
     transition-color
+    p-0
+    font-medium
+    leading-tight
     duration-150
     ease-in-out;
 }
 
-.summary {
-  @apply p-0
-    text-n2
+.description {
+  @apply text-n2
     text-color-3
+    word-break
     mt-0.5
-    word-break;
+    p-0;
 }
 
 .icon {
@@ -123,13 +114,13 @@ calcite-handle {
 }
 
 .toggle-icon {
-  @apply self-center
-  justify-self-end
-  text-color-3
+  @apply text-color-3
   transition-color
+  my-3
+  self-center
+  justify-self-end
   duration-150
-  ease-in-out
-  my-3;
+  ease-in-out;
   margin-inline-end: theme("spacing.4");
   margin-inline-start: auto;
 }
@@ -139,14 +130,17 @@ calcite-handle {
 }
 
 .content {
-  @apply px-3
-    py-2
-    relative
-    animate-in;
+  @apply animate-in
+    relative;
+}
+
+.content--spaced {
+  padding-block: var(--calcite-block-padding, theme("spacing.2"));
+  padding-inline: var(--calcite-block-padding, theme("spacing[2.5]"));
 }
 
 .control-container {
-  @apply flex m-0;
+  @apply m-0 flex;
   grid-area: control;
 }
 
@@ -159,16 +153,5 @@ calcite-action-menu {
 
   .header .title .heading {
     @apply text-color-1;
-  }
-}
-
-:host([disabled]) {
-  pointer-events: none;
-  user-select: none;
-
-  @apply pointer-events-none select-none;
-
-  .header-container {
-    @apply opacity-50;
   }
 }

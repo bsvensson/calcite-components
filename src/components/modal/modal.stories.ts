@@ -2,7 +2,7 @@ import { select, text, number } from "@storybook/addon-knobs";
 import { boolean } from "../../../.storybook/helpers";
 import { themesDarkDefault } from "../../../.storybook/utils";
 import readme from "./readme.md";
-import { html } from "../../tests/utils";
+import { html } from "../../../support/formatting";
 
 export default {
   title: "Components/Modal",
@@ -14,7 +14,7 @@ export default {
 
 export const Simple = (): string => html`
   <calcite-modal
-    ${boolean("active", true)}
+    ${boolean("open", true)}
     color="${select("color", { blue: "blue", red: "red", none: "" }, "")}"
     background-color="${select("background-color", ["white", "grey"], "white")}"
     scale="${select("scale", ["s", "m", "l"], "m")}"
@@ -38,7 +38,7 @@ export const Simple = (): string => html`
 `;
 
 export const CustomSize = (): string => html`
-  <calcite-modal active width="${number("width", 500)}">
+  <calcite-modal open width="${number("width", 500)}">
     <h3 slot="header">Custom Size</h3>
     <div slot="content">
       <p>
@@ -57,7 +57,7 @@ export const CustomSize = (): string => html`
 export const DarkMode = (): string => html`
   <calcite-modal
     class="calcite-theme-dark"
-    ${boolean("active", true)}
+    ${boolean("open", true)}
     color="${select("color", { blue: "blue", red: "red", none: "" }, "")}"
     background-color="${select("background-color", ["white", "grey"], "white")}"
     scale="${select("scale", ["s", "m", "l"], "m")}"
@@ -86,7 +86,7 @@ DarkMode.parameters = { themes: themesDarkDefault };
 export const RTL = (): string => html`
   <calcite-modal
     dir="rtl"
-    ${boolean("active", true)}
+    ${boolean("open", true)}
     color="${select("color", { blue: "blue", red: "red", none: "" }, "")}"
     background-color="${select("background-color", ["white", "grey"], "white")}"
     scale="${select("scale", ["s", "m", "l"], "m")}"

@@ -11,19 +11,28 @@ import {
   VNode,
   Watch
 } from "@stencil/core";
-import { DropdownPlacement, ItemKeyboardEvent } from "./interfaces";
+import { ItemKeyboardEvent, Selection } from "./interfaces";
 
-import { focusElement, getSlotted } from "../../utils/dom";
+import { focusElement, toAriaBoolean } from "../../utils/dom";
 import {
-  createPopper,
-  CSS as PopperCSS,
+  positionFloatingUI,
+  FloatingCSS,
   OverlayPositioning,
-  updatePopper
-} from "../../utils/popper";
-import { Instance as Popper, StrictModifiers } from "@popperjs/core";
+  FloatingUIComponent,
+  connectFloatingUI,
+  disconnectFloatingUI,
+  EffectivePlacement,
+  MenuPlacement,
+  defaultMenuPlacement,
+  filterComputedPlacements
+} from "../../utils/floating-ui";
 import { Scale } from "../interfaces";
-import { DefaultDropdownPlacement, SLOTS } from "./resources";
+import { SLOTS } from "./resources";
 import { createObserver } from "../../utils/observers";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
+import { OpenCloseComponent } from "../../utils/openCloseComponent";
+import { guid } from "../../utils/guid";
+import { RequestedItem } from "../dropdown-group/interfaces";
 
 /**
  * @slot - A slot for adding `calcite-dropdown-group`s or `calcite-dropdown-item`s.
@@ -34,7 +43,7 @@ import { createObserver } from "../../utils/observers";
   styleUrl: "dropdown.scss",
   shadow: true
 })
-export class Dropdown {
+export class Dropdown implements InteractiveComponent, OpenCloseComponent, FloatingUIComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -49,12 +58,30 @@ export class Dropdown {
   //
   //--------------------------------------------------------------------------
 
-  /** Opens or closes the dropdown */
+  /**
+   * Opens or closes the dropdown
+   *
+   * @deprecated use open instead.
+   */
   @Prop({ reflect: true, mutable: true }) active = false;
 
   @Watch("active")
-  activeHandler(): void {
-    this.reposition();
+  activeHandler(value: boolean): void {
+    this.open = value;
+  }
+
+  /** When true, opens the dropdown */
+  @Prop({ reflect: true, mutable: true }) open = false;
+
+  @Watch("open")
+  openHandler(value: boolean): void {
+    if (!this.disabled) {
+      this.reposition();
+      this.active = value;
+      return;
+    }
+
+    this.open = false;
   }
 
   /**
@@ -66,10 +93,27 @@ export class Dropdown {
   /** is the dropdown disabled  */
   @Prop({ reflect: true }) disabled = false;
 
+  @Watch("disabled")
+  handleDisabledChange(value: boolean): void {
+    if (!value) {
+      this.open = false;
+    }
+  }
+
+  /**
+   * Defines the available placements that can be used when a flip occurs.
+   */
+  @Prop() flipPlacements?: EffectivePlacement[];
+
+  @Watch("flipPlacements")
+  flipPlacementsHandler(): void {
+    this.setFilteredPlacements();
+  }
+
   /**
    specify the maximum number of calcite-dropdown-items to display before showing the scroller, must be greater than 0 -
    this value does not include groupTitles passed to calcite-dropdown-group
-  */
+   */
   @Prop() maxItems = 0;
 
   @Watch("maxItems")
@@ -80,11 +124,17 @@ export class Dropdown {
   /** Describes the type of positioning to use for the overlaid content. If your element is in a fixed container, use the 'fixed' value. */
   @Prop() overlayPositioning: OverlayPositioning = "absolute";
 
+  @Watch("overlayPositioning")
+  overlayPositioningHandler(): void {
+    this.reposition();
+  }
+
   /**
    * Determines where the dropdown will be positioned relative to the button.
-   * @default "bottom-leading"
+   *
+   * @default "bottom-start"
    */
-  @Prop({ reflect: true }) placement: DropdownPlacement = DefaultDropdownPlacement;
+  @Prop({ reflect: true }) placement: MenuPlacement = defaultMenuPlacement;
 
   @Watch("placement")
   placementHandler(): void {
@@ -104,8 +154,8 @@ export class Dropdown {
   /** specify whether the dropdown is opened by hover or click of a trigger element */
   @Prop({ reflect: true }) type: "hover" | "click" = "click";
 
-  /** specify the width of dropdown, defaults to m */
-  @Prop({ reflect: true }) width: Scale = "m";
+  /** specify the width of dropdown */
+  @Prop({ reflect: true }) width?: Scale;
 
   //--------------------------------------------------------------------------
   //
@@ -115,53 +165,69 @@ export class Dropdown {
 
   connectedCallback(): void {
     this.mutationObserver?.observe(this.el, { childList: true, subtree: true });
-    this.createPopper();
-    this.updateItems();
+    this.setFilteredPlacements();
+    this.reposition();
+    if (this.open) {
+      this.openHandler(this.open);
+    }
+    if (this.active) {
+      this.activeHandler(this.active);
+    }
   }
 
   componentDidLoad(): void {
     this.reposition();
   }
 
+  componentDidRender(): void {
+    updateHostInteraction(this);
+  }
+
   disconnectedCallback(): void {
     this.mutationObserver?.disconnect();
+    disconnectFloatingUI(this, this.referenceEl, this.floatingEl);
     this.resizeObserver?.disconnect();
-    this.destroyPopper();
+    this.scrollerEl?.removeEventListener("transitionstart", this.transitionStartHandler);
   }
 
   render(): VNode {
-    const { active } = this;
-
+    const { open, guid } = this;
     return (
-      <Host tabIndex={this.disabled ? -1 : null}>
+      <Host>
         <div
           class="calcite-dropdown-trigger-container"
+          id={`${guid}-menubutton`}
           onClick={this.openCalciteDropdown}
           onKeyDown={this.keyDownHandler}
           ref={this.setReferenceEl}
         >
           <slot
-            aria-expanded={active.toString()}
-            aria-haspopup="true"
+            aria-controls={`${guid}-menu`}
+            aria-expanded={toAriaBoolean(open)}
+            aria-haspopup="menu"
             name={SLOTS.dropdownTrigger}
+            onSlotchange={this.updateTriggers}
           />
         </div>
         <div
-          aria-hidden={(!active).toString()}
+          aria-hidden={toAriaBoolean(!open)}
           class="calcite-dropdown-wrapper"
-          ref={this.setMenuEl}
+          ref={this.setFloatingEl}
         >
           <div
+            aria-labelledby={`${guid}-menubutton`}
             class={{
               ["calcite-dropdown-content"]: true,
-              [PopperCSS.animation]: true,
-              [PopperCSS.animationActive]: active
+              [FloatingCSS.animation]: true,
+              [FloatingCSS.animationActive]: open
             }}
+            id={`${guid}-menu`}
             onTransitionEnd={this.transitionEnd}
             ref={this.setScrollerEl}
+            role="menu"
           >
-            <div hidden={!this.active}>
-              <slot />
+            <div hidden={!open}>
+              <slot onSlotchange={this.updateGroups} />
             </div>
           </div>
         </div>
@@ -178,18 +244,15 @@ export class Dropdown {
   /** Updates the position of the component. */
   @Method()
   async reposition(): Promise<void> {
-    const { popper, menuEl, placement } = this;
+    const { floatingEl, referenceEl, placement, overlayPositioning } = this;
 
-    const modifiers = this.getModifiers();
-
-    popper
-      ? await updatePopper({
-          el: menuEl,
-          modifiers,
-          placement,
-          popper
-        })
-      : this.createPopper();
+    return positionFloatingUI({
+      floatingEl,
+      referenceEl,
+      overlayPositioning,
+      placement,
+      type: "menu"
+    });
   }
 
   //--------------------------------------------------------------------------
@@ -198,36 +261,43 @@ export class Dropdown {
   //
   //--------------------------------------------------------------------------
 
-  /** fires when a dropdown item has been selected or deselected **/
-  @Event() calciteDropdownSelect: EventEmitter<void>;
+  /** fires when a dropdown item has been selected or deselected */
+  @Event() calciteDropdownSelect: EventEmitter<Selection>;
 
-  /** fires when a dropdown has been opened **/
-  @Event() calciteDropdownOpen: EventEmitter<void>;
+  /** Fires when the component is requested to be closed and before the closing transition begins. */
+  @Event() calciteDropdownBeforeClose: EventEmitter<void>;
 
-  /** fires when a dropdown has been closed **/
+  /** Fires when the component is closed and animation is complete. */
   @Event() calciteDropdownClose: EventEmitter<void>;
 
-  @Listen("click", { target: "window" })
-  closeCalciteDropdownOnClick(e: Event): void {
-    if (!this.active || e.composedPath().includes(this.el)) {
+  /** Fires when the component is added to the DOM but not rendered, and before the opening transition begins. */
+  @Event() calciteDropdownBeforeOpen: EventEmitter<void>;
+
+  /** Fires when the component is open and animation is complete. */
+  @Event() calciteDropdownOpen: EventEmitter<void>;
+
+  @Listen("pointerdown", { target: "window" })
+  closeCalciteDropdownOnClick(event: Event): void {
+    if (!this.open || event.composedPath().includes(this.el)) {
       return;
     }
 
-    this.closeCalciteDropdown();
+    this.closeCalciteDropdown(false);
   }
 
-  @Listen("calciteDropdownCloseRequest")
-  closeCalciteDropdownOnEvent(): void {
+  @Listen("calciteInternalDropdownCloseRequest")
+  closeCalciteDropdownOnEvent(event: Event): void {
     this.closeCalciteDropdown();
+    event.stopPropagation();
   }
 
   @Listen("calciteDropdownOpen", { target: "window" })
-  closeCalciteDropdownOnOpenEvent(e: Event): void {
-    if (e.composedPath().includes(this.el)) {
+  closeCalciteDropdownOnOpenEvent(event: Event): void {
+    if (event.composedPath().includes(this.el)) {
       return;
     }
 
-    this.active = false;
+    this.open = false;
   }
 
   @Listen("mouseenter")
@@ -244,9 +314,9 @@ export class Dropdown {
     }
   }
 
-  @Listen("calciteDropdownItemKeyEvent")
-  calciteDropdownItemKeyEvent(e: CustomEvent<ItemKeyboardEvent>): void {
-    const { keyboardEvent } = e.detail;
+  @Listen("calciteInternalDropdownItemKeyEvent")
+  calciteInternalDropdownItemKeyEvent(event: CustomEvent<ItemKeyboardEvent>): void {
+    const { keyboardEvent } = event.detail;
     // handle edge
     const target = keyboardEvent.target as HTMLCalciteDropdownItemElement;
     const itemToFocus = target.nodeName !== "A" ? target : target.parentNode;
@@ -278,20 +348,23 @@ export class Dropdown {
         break;
     }
 
-    e.stopPropagation();
+    event.stopPropagation();
   }
 
-  @Listen("calciteDropdownItemSelect")
-  handleItemSelect(event: CustomEvent): void {
+  @Listen("calciteInternalDropdownItemSelect")
+  handleItemSelect(event: CustomEvent<RequestedItem>): void {
     this.updateSelectedItems();
     event.stopPropagation();
-    this.calciteDropdownSelect.emit();
+    this.calciteDropdownSelect.emit({
+      item: event.detail.requestedDropdownItem
+    });
     if (
       !this.disableCloseOnSelect ||
       event.detail.requestedDropdownGroup.selectionMode === "none"
     ) {
       this.closeCalciteDropdown();
     }
+    event.stopPropagation();
   }
 
   //--------------------------------------------------------------------------
@@ -300,16 +373,18 @@ export class Dropdown {
   //
   //--------------------------------------------------------------------------
 
+  filteredFlipPlacements: EffectivePlacement[];
+
   private items: HTMLCalciteDropdownItemElement[] = [];
+
+  private groups: HTMLCalciteDropdownGroupElement[] = [];
 
   /** trigger elements */
   private triggers: HTMLElement[];
 
-  private popper: Popper;
+  floatingEl: HTMLDivElement;
 
-  private menuEl: HTMLDivElement;
-
-  private referenceEl: HTMLDivElement;
+  referenceEl: HTMLDivElement;
 
   private activeTransitionProp = "visibility";
 
@@ -317,7 +392,11 @@ export class Dropdown {
 
   mutationObserver = createObserver("mutation", () => this.updateItems());
 
-  resizeObserver = createObserver("resize", () => this.setMaxScrollerHeight());
+  resizeObserver = createObserver("resize", (entries) => this.resizeObserverCallback(entries));
+
+  guid = `calcite-dropdown-${guid()}`;
+
+  defaultAssignedElements: Element[] = [];
 
   //--------------------------------------------------------------------------
   //
@@ -325,22 +404,75 @@ export class Dropdown {
   //
   //--------------------------------------------------------------------------
 
-  updateItems = (): void => {
-    this.updateSelectedItems();
+  slotChangeHandler = (event: Event): void => {
+    this.defaultAssignedElements = (event.target as HTMLSlotElement).assignedElements({
+      flatten: true
+    });
 
-    this.triggers = getSlotted(this.el, "dropdown-trigger", { all: true });
+    this.updateItems();
+  };
 
-    this.items = Array.from(
-      this.el.querySelectorAll<HTMLCalciteDropdownItemElement>("calcite-dropdown-item")
-    );
+  setFilteredPlacements = (): void => {
+    const { el, flipPlacements } = this;
+
+    this.filteredFlipPlacements = flipPlacements
+      ? filterComputedPlacements(flipPlacements, el)
+      : null;
+  };
+
+  updateTriggers = (event: Event): void => {
+    this.triggers = (event.target as HTMLSlotElement).assignedElements({
+      flatten: true
+    }) as HTMLElement[];
 
     this.reposition();
   };
 
-  setMaxScrollerHeight = (): void => {
-    const { active, scrollerEl } = this;
+  updateItems = (): void => {
+    this.items = this.groups
+      .map((group) => Array.from(group?.querySelectorAll("calcite-dropdown-item")))
+      .reduce((previousValue, currentValue) => [...previousValue, ...currentValue], []);
 
-    if (!scrollerEl || !active) {
+    this.updateSelectedItems();
+
+    this.reposition();
+  };
+
+  updateGroups = (event: Event): void => {
+    const groups = (event.target as HTMLSlotElement)
+      .assignedElements({ flatten: true })
+      .filter((el) => el?.matches("calcite-dropdown-group")) as HTMLCalciteDropdownGroupElement[];
+
+    this.groups = groups;
+
+    this.updateItems();
+  };
+
+  resizeObserverCallback = (entries: ResizeObserverEntry[]): void => {
+    entries.forEach((entry) => {
+      const { target } = entry;
+      if (target === this.referenceEl) {
+        this.setDropdownWidth();
+      } else if (target === this.scrollerEl) {
+        this.setMaxScrollerHeight();
+      }
+    });
+  };
+
+  setDropdownWidth = (): void => {
+    const { referenceEl, scrollerEl } = this;
+    const referenceElWidth = referenceEl?.clientWidth;
+
+    if (!referenceElWidth || !scrollerEl) {
+      return;
+    }
+
+    scrollerEl.style.minWidth = `${referenceElWidth}px`;
+  };
+
+  setMaxScrollerHeight = (): void => {
+    const { scrollerEl, open } = this;
+    if (!scrollerEl || !open) {
       return;
     }
 
@@ -353,103 +485,84 @@ export class Dropdown {
   setScrollerEl = (scrollerEl: HTMLDivElement): void => {
     this.resizeObserver.observe(scrollerEl);
     this.scrollerEl = scrollerEl;
+    this.scrollerEl.addEventListener("transitionstart", this.transitionStartHandler);
   };
 
   transitionEnd = (event: TransitionEvent): void => {
-    if (event.propertyName === this.activeTransitionProp) {
-      this.active ? this.calciteDropdownOpen.emit() : this.calciteDropdownClose.emit();
+    if (event.propertyName === this.activeTransitionProp && event.target === this.scrollerEl) {
+      this.open ? this.onOpen() : this.onClose();
     }
   };
+
+  transitionStartHandler = (event: TransitionEvent): void => {
+    if (event.propertyName === this.activeTransitionProp && event.target === this.scrollerEl) {
+      this.open ? this.onBeforeOpen() : this.onBeforeClose();
+    }
+  };
+
+  onBeforeOpen(): void {
+    this.calciteDropdownBeforeOpen.emit();
+  }
+
+  onOpen(): void {
+    this.calciteDropdownOpen.emit();
+  }
+
+  onBeforeClose(): void {
+    this.calciteDropdownBeforeClose.emit();
+  }
+
+  onClose(): void {
+    this.calciteDropdownClose.emit();
+  }
 
   setReferenceEl = (el: HTMLDivElement): void => {
     this.referenceEl = el;
+    connectFloatingUI(this, this.referenceEl, this.floatingEl);
+    this.resizeObserver.observe(el);
   };
 
-  setMenuEl = (el: HTMLDivElement): void => {
-    this.menuEl = el;
+  setFloatingEl = (el: HTMLDivElement): void => {
+    this.floatingEl = el;
+    connectFloatingUI(this, this.referenceEl, this.floatingEl);
   };
 
-  getModifiers(): Partial<StrictModifiers>[] {
-    const flipModifier: Partial<StrictModifiers> = {
-      name: "flip",
-      enabled: true
-    };
+  private keyDownHandler = (event: KeyboardEvent): void => {
+    const target = event.target as HTMLElement;
 
-    flipModifier.options = {
-      fallbackPlacements: ["top-start", "top", "top-end", "bottom-start", "bottom", "bottom-end"]
-    };
-
-    return [flipModifier];
-  }
-
-  createPopper(): void {
-    this.destroyPopper();
-    const { menuEl, referenceEl, placement, overlayPositioning } = this;
-    const modifiers = this.getModifiers();
-
-    this.popper = createPopper({
-      el: menuEl,
-      modifiers,
-      overlayPositioning,
-      placement,
-      referenceEl
-    });
-  }
-
-  destroyPopper(): void {
-    const { popper } = this;
-
-    if (popper) {
-      popper.destroy();
+    if (target !== this.referenceEl) {
+      return;
     }
 
-    this.popper = null;
-  }
+    const key = event.key;
 
-  private keyDownHandler = (e: KeyboardEvent): void => {
-    const target = e.target as HTMLSlotElement;
-    const key = e.key;
-    if (
-      this.triggers.includes(target) ||
-      this.triggers.some((trigger) => trigger.contains(target))
-    ) {
-      const ignoredNodeTypes = ["BUTTON", "CALCITE-BUTTON", "CALCITE-ACTION"];
-      if (ignoredNodeTypes.includes(target.nodeName)) {
-        if (this.active && (key === "Escape" || (e.shiftKey && key === "Tab"))) {
-          this.closeCalciteDropdown();
-        }
-        return;
-      }
-      switch (key) {
-        case " ":
-        case "Enter":
-          this.openCalciteDropdown();
-          break;
-        case "Escape":
-          this.closeCalciteDropdown();
-          break;
-      }
+    if (this.open && (key === "Escape" || (event.shiftKey && key === "Tab"))) {
+      this.closeCalciteDropdown();
+      return;
+    }
+
+    switch (key) {
+      case " ":
+      case "Enter":
+        this.openCalciteDropdown();
+        break;
+      case "Escape":
+        this.closeCalciteDropdown();
+        break;
     }
   };
 
   private updateSelectedItems(): void {
-    const items = Array.from(
-      this.el.querySelectorAll<HTMLCalciteDropdownItemElement>("calcite-dropdown-item")
-    );
-    this.selectedItems = items.filter((item) => item.active);
+    this.selectedItems = this.items.filter((item) => item.active);
   }
 
   private getMaxScrollerHeight(): number {
-    const groups = Array.from(
-      this.el.querySelectorAll<HTMLCalciteDropdownGroupElement>("calcite-dropdown-group")
-    );
-
     const { maxItems } = this;
     let itemsToProcess = 0;
     let maxScrollerHeight = 0;
     let groupHeaderHeight: number;
 
-    groups.forEach((group) => {
+    this.groups.forEach((group) => {
       if (maxItems > 0 && itemsToProcess < maxItems) {
         Array.from(group.children).forEach((item: HTMLCalciteDropdownItemElement, index) => {
           if (index === 0) {
@@ -471,9 +584,12 @@ export class Dropdown {
     return maxScrollerHeight;
   }
 
-  private closeCalciteDropdown() {
-    this.active = false;
-    focusElement(this.triggers[0]);
+  private closeCalciteDropdown(focusTrigger = true) {
+    this.open = false;
+
+    if (focusTrigger) {
+      focusElement(this.triggers[0]);
+    }
   }
 
   private focusOnFirstActiveOrFirstItem = (): void => {
@@ -490,20 +606,20 @@ export class Dropdown {
     this.getFocusableElement(lastItem);
   }
 
-  private focusNextItem(e): void {
-    const index = this.itemIndex(e);
+  private focusNextItem(el): void {
+    const index = this.itemIndex(el);
     const nextItem = this.items[index + 1] || this.items[0];
     this.getFocusableElement(nextItem);
   }
 
-  private focusPrevItem(e): void {
-    const index = this.itemIndex(e);
+  private focusPrevItem(el): void {
+    const index = this.itemIndex(el);
     const prevItem = this.items[index - 1] || this.items[this.items.length - 1];
     this.getFocusableElement(prevItem);
   }
 
-  private itemIndex(e): number {
-    return this.items.indexOf(e);
+  private itemIndex(el): number {
+    return this.items.indexOf(el);
   }
 
   private getFocusableElement(item): void {
@@ -524,9 +640,8 @@ export class Dropdown {
   };
 
   private openCalciteDropdown = () => {
-    this.active = !this.active;
-
-    if (this.active) {
+    this.open = !this.open;
+    if (this.open) {
       this.el.addEventListener("calciteDropdownOpen", this.toggleOpenEnd);
     }
   };

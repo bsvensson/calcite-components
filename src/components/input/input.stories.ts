@@ -2,7 +2,7 @@ import { select, text, number } from "@storybook/addon-knobs";
 import { boolean, iconNames } from "../../../.storybook/helpers";
 import { themesDarkDefault } from "../../../.storybook/utils";
 import readme from "./readme.md";
-import { html } from "../../tests/utils";
+import { html } from "../../../support/formatting";
 
 export default {
   title: "Components/Controls/Input",
@@ -270,3 +270,11 @@ export const WithLabelAndInputMessageRTL = (): string => html`
     </calcite-label>
   </div>
 `;
+
+export const HebrewNumberingSystem = (): string =>
+  html` <calcite-input type="number" locale="ar-EG" numbering-system="hebr" value="123456"></calcite-input>`;
+
+export const ArabicLocaleWithLatinNumberingSystem = (): string =>
+  html` <calcite-input type="number" locale="ar-EG" value="123456"></calcite-input>`;
+
+export const disabled = (): string => html`<calcite-input disabled value="disabled"></calcite-input>`;

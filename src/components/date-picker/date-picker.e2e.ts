@@ -1,7 +1,7 @@
 import { E2EPage, newE2EPage } from "@stencil/core/testing";
 import { renders, defaults, hidden } from "../../tests/commonTests";
 import { TEXT } from "./resources";
-import { html } from "../../tests/utils";
+import { html } from "../../../support/formatting";
 
 describe("calcite-date-picker", () => {
   it("renders", async () => renders("calcite-date-picker", { display: "inline-block" }));
@@ -49,6 +49,49 @@ describe("calcite-date-picker", () => {
     const value2 = await date.getProperty("value");
     expect(value2).toEqual("2000-11-27");
     expect(changedEvent).toHaveReceivedEventTimes(0);
+  });
+
+  it("updates the calendar immediately as a new year is typed but doesn't change the year", async () => {
+    const page = await newE2EPage();
+    await page.setContent(`<calcite-date-picker value="2015-02-28" active></calcite-date-picker>`);
+    const datePicker = await page.find("calcite-date-picker");
+    await page.waitForTimeout(animationDurationInMs);
+
+    async function getActiveMonthDate(): Promise<string> {
+      return page.$eval("calcite-date-picker", (datePicker: HTMLCalciteDatePickerElement) =>
+        datePicker.shadowRoot.querySelector("calcite-date-picker-month").activeDate.toISOString()
+      );
+    }
+
+    async function getActiveMonthHeaderInputValue(): Promise<string> {
+      return page.$eval(
+        "calcite-date-picker",
+        (datePicker: HTMLCalciteDatePickerElement) =>
+          (
+            datePicker.shadowRoot
+              .querySelector("calcite-date-picker-month-header")
+              .shadowRoot.querySelector(".year") as HTMLInputElement
+          ).value
+      );
+    }
+
+    const activeDateBefore = await getActiveMonthDate();
+
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await page.keyboard.down("Meta");
+    await page.keyboard.press("a");
+    expect(await getActiveMonthHeaderInputValue()).toBe("2015");
+    await page.keyboard.press("Backspace");
+    await page.keyboard.up("Meta");
+    await page.keyboard.type("2016");
+    expect(await getActiveMonthHeaderInputValue()).toBe("2016");
+    await page.waitForChanges();
+
+    const activeDateAfter = await getActiveMonthDate();
+
+    expect(activeDateBefore).not.toEqual(activeDateAfter);
+    expect(await datePicker.getProperty("value")).toBe("2015-02-28");
   });
 
   it("fires a calciteDatePickerChange event when day is selected", async () => {
@@ -155,7 +198,7 @@ describe("calcite-date-picker", () => {
   });
 
   describe("when the locale is set to Slovak calendar", () => {
-    it.skip("should start the week on Monday", async () => {
+    it("should start the week on Monday", async () => {
       const page = await newE2EPage({
         html: `<calcite-date-picker scale="m" locale="sk" value="2000-11-27"></calcite-date-picker>`
       });
@@ -174,7 +217,7 @@ describe("calcite-date-picker", () => {
 
   it("updates internally when min attribute is updated after initialization", async () => {
     const page = await newE2EPage();
-    page.emulateTimezone("America/Los_Angeles");
+    await page.emulateTimezone("America/Los_Angeles");
     await page.setContent(
       html`<calcite-date-picker value="2022-11-27" min="2022-11-15" max="2024-11-15"></calcite-date-picker>`
     );

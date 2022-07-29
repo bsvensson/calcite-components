@@ -12,7 +12,7 @@ import {
   Watch
 } from "@stencil/core";
 import { guid } from "../../utils/guid";
-import { focusElement, getElementDir } from "../../utils/dom";
+import { focusElement, getElementDir, toAriaBoolean } from "../../utils/dom";
 import { Scale } from "../interfaces";
 import { connectLabel, disconnectLabel, getLabelText, LabelableComponent } from "../../utils/label";
 import {
@@ -23,13 +23,16 @@ import {
 } from "../../utils/form";
 import { CSS } from "./resources";
 import { getRoundRobinIndex } from "../../utils/array";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 
 @Component({
   tag: "calcite-radio-button",
   styleUrl: "radio-button.scss",
   shadow: true
 })
-export class RadioButton implements LabelableComponent, CheckableFormCompoment {
+export class RadioButton
+  implements LabelableComponent, CheckableFormCompoment, InteractiveComponent
+{
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -53,7 +56,7 @@ export class RadioButton implements LabelableComponent, CheckableFormCompoment {
       this.uncheckOtherRadioButtonsInGroup();
     }
 
-    this.calciteInternalRadioButtonCheckedChange.emit(newChecked);
+    this.calciteInternalRadioButtonCheckedChange.emit();
   }
 
   /** The disabled state of the radio button. */
@@ -61,6 +64,7 @@ export class RadioButton implements LabelableComponent, CheckableFormCompoment {
 
   /**
    * The focused state of the radio button.
+   *
    * @internal
    */
   @Prop({ mutable: true, reflect: true }) focused = false;
@@ -73,12 +77,14 @@ export class RadioButton implements LabelableComponent, CheckableFormCompoment {
 
   /**
    * The hovered state of the radio button.
+   *
    * @internal
    */
   @Prop({ reflect: true, mutable: true }) hovered = false;
 
   /**
    * The label of the radio input
+   *
    * @internal
    */
   @Prop() label?: string;
@@ -109,6 +115,8 @@ export class RadioButton implements LabelableComponent, CheckableFormCompoment {
   labelEl: HTMLCalciteLabelElement;
 
   formEl: HTMLFormElement;
+
+  defaultChecked: boolean;
 
   defaultValue: RadioButton["value"];
 
@@ -157,6 +165,7 @@ export class RadioButton implements LabelableComponent, CheckableFormCompoment {
     }
     this.uncheckAllRadioButtonsInGroup();
     this.checked = true;
+    this.focused = true;
     this.calciteRadioButtonChange.emit();
     this.setFocus();
   };
@@ -248,9 +257,10 @@ export class RadioButton implements LabelableComponent, CheckableFormCompoment {
 
   /**
    * Fires when the radio button is blurred.
+   *
    * @internal
    */
-  @Event() calciteInternalRadioButtonBlur: EventEmitter;
+  @Event() calciteInternalRadioButtonBlur: EventEmitter<void>;
 
   /**
    * Fires only when the radio button is checked.  This behavior is identical to the native HTML input element.
@@ -258,20 +268,22 @@ export class RadioButton implements LabelableComponent, CheckableFormCompoment {
    * directly on the element, but instead either attach it to a node that contains all of the radio buttons in the group
    * or use the calciteRadioButtonGroupChange event if using this with calcite-radio-button-group.
    */
-  @Event() calciteRadioButtonChange: EventEmitter;
+  @Event() calciteRadioButtonChange: EventEmitter<void>;
 
   /**
    * Fires when the checked property changes.  This is an internal event used for styling purposes only.
    * Use calciteRadioButtonChange or calciteRadioButtonGroupChange for responding to changes in the checked value for forms.
+   *
    * @internal
    */
-  @Event() calciteInternalRadioButtonCheckedChange: EventEmitter;
+  @Event() calciteInternalRadioButtonCheckedChange: EventEmitter<void>;
 
   /**
    * Fires when the radio button is focused.
+   *
    * @internal
    */
-  @Event() calciteInternalRadioButtonFocus: EventEmitter;
+  @Event() calciteInternalRadioButtonFocus: EventEmitter<void>;
 
   //--------------------------------------------------------------------------
   //
@@ -388,6 +400,10 @@ export class RadioButton implements LabelableComponent, CheckableFormCompoment {
     disconnectForm(this);
   }
 
+  componentDidRender(): void {
+    updateHostInteraction(this);
+  }
+
   // --------------------------------------------------------------------------
   //
   //  Render Methods
@@ -399,7 +415,7 @@ export class RadioButton implements LabelableComponent, CheckableFormCompoment {
     return (
       <Host onClick={this.clickHandler} onKeyDown={this.handleKeyDown}>
         <div
-          aria-checked={this.checked.toString()}
+          aria-checked={toAriaBoolean(this.checked)}
           aria-label={getLabelText(this)}
           class={CSS.container}
           onBlur={this.onContainerBlur}

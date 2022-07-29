@@ -15,6 +15,7 @@ import { Alignment, Width } from "../interfaces";
 import { TileSelectType } from "./interfaces";
 import { guid } from "../../utils/guid";
 import { CSS } from "./resources";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 
 /**
  * @slot - A slot for adding custom content.
@@ -24,7 +25,7 @@ import { CSS } from "./resources";
   styleUrl: "tile-select.scss",
   shadow: true
 })
-export class TileSelect {
+export class TileSelect implements InteractiveComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -113,7 +114,7 @@ export class TileSelect {
   /**
    * Emits a custom change event.  For checkboxes, it emits when the checkbox is checked or unchecked.  For radios it only emits when it is checked.
    */
-  @Event() calciteTileSelectChange: EventEmitter;
+  @Event() calciteTileSelectChange: EventEmitter<void>;
 
   //--------------------------------------------------------------------------
   //
@@ -124,7 +125,7 @@ export class TileSelect {
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
-    this.input.setFocus();
+    this.input?.setFocus();
   }
 
   //--------------------------------------------------------------------------
@@ -223,6 +224,10 @@ export class TileSelect {
 
   disconnectedCallback(): void {
     this.input.parentNode.removeChild(this.input);
+  }
+
+  componentDidRender(): void {
+    updateHostInteraction(this);
   }
 
   // --------------------------------------------------------------------------

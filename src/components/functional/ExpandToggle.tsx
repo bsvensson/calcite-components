@@ -35,7 +35,11 @@ export function toggleChildActionText({
   queryActions(parent)
     .filter((el) => el.slot !== ACTION_GROUP_SLOTS.menuActions)
     .forEach((action) => (action.textEnabled = expanded));
-  parent.querySelectorAll("calcite-action-group").forEach((group) => (group.expanded = expanded));
+  parent
+    .querySelectorAll("calcite-action-group, calcite-action-menu")
+    .forEach(
+      (el: HTMLCalciteActionMenuElement | HTMLCalciteActionGroupElement) => (el.expanded = expanded)
+    );
 }
 
 const setTooltipReference = ({
@@ -50,7 +54,7 @@ const setTooltipReference = ({
   ref?: (el: HTMLElement) => void;
 }): HTMLCalciteActionElement => {
   if (tooltip) {
-    tooltip.referenceElement = !expanded && referenceElement;
+    tooltip.referenceElement = !expanded && referenceElement ? referenceElement : null;
   }
 
   if (ref) {
@@ -97,5 +101,5 @@ export const ExpandToggle: FunctionalComponent<ExpandToggleProps> = ({
     />
   );
 
-  return tooltip ? <calcite-tooltip-manager>{actionNode}</calcite-tooltip-manager> : actionNode;
+  return actionNode;
 };

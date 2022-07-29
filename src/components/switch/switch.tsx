@@ -7,12 +7,11 @@ import {
   Host,
   Method,
   Prop,
-  State,
   VNode,
   Watch
 } from "@stencil/core";
-import { focusElement } from "../../utils/dom";
-import { Scale } from "../interfaces";
+import { focusElement, toAriaBoolean } from "../../utils/dom";
+import { DeprecatedEventPayload, Scale } from "../interfaces";
 import { LabelableComponent, connectLabel, disconnectLabel, getLabelText } from "../../utils/label";
 import {
   connectForm,
@@ -20,13 +19,14 @@ import {
   CheckableFormCompoment,
   HiddenFormInputSlot
 } from "../../utils/form";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 
 @Component({
   tag: "calcite-switch",
   styleUrl: "switch.scss",
   shadow: true
 })
-export class Switch implements LabelableComponent, CheckableFormCompoment {
+export class Switch implements LabelableComponent, CheckableFormCompoment, InteractiveComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -44,11 +44,6 @@ export class Switch implements LabelableComponent, CheckableFormCompoment {
   /** True if the switch is disabled */
   @Prop({ reflect: true }) disabled = false;
 
-  @Watch("disabled")
-  disabledWatcher(newDisabled: boolean): void {
-    this.tabindex = newDisabled ? -1 : 0;
-  }
-
   /** Applies to the aria-label attribute on the switch */
   @Prop() label?: string;
 
@@ -58,7 +53,9 @@ export class Switch implements LabelableComponent, CheckableFormCompoment {
   /** The scale of the switch */
   @Prop({ reflect: true }) scale: Scale = "m";
 
-  /** True if the switch is initially on
+  /**
+   * True if the switch is initially on
+   *
    * @deprecated use 'checked' instead.
    */
   @Prop({ mutable: true }) switched = false;
@@ -92,14 +89,6 @@ export class Switch implements LabelableComponent, CheckableFormCompoment {
 
   //--------------------------------------------------------------------------
   //
-  //  State
-  //
-  //--------------------------------------------------------------------------
-
-  @State() tabindex: number;
-
-  //--------------------------------------------------------------------------
-  //
   //  Public Methods
   //
   //--------------------------------------------------------------------------
@@ -116,10 +105,11 @@ export class Switch implements LabelableComponent, CheckableFormCompoment {
   //
   //--------------------------------------------------------------------------
 
-  keyDownHandler = (e: KeyboardEvent): void => {
-    const key = e.key;
+  keyDownHandler = (event: KeyboardEvent): void => {
+    const key = event.key;
     if (!this.disabled && (key === " " || key === "Enter")) {
       this.toggle();
+      event.preventDefault();
     }
   };
 
@@ -133,8 +123,6 @@ export class Switch implements LabelableComponent, CheckableFormCompoment {
   private toggle(): void {
     this.checked = !this.checked;
     this.calciteSwitchChange.emit({
-      // todo: We should remove emmitting redudant props in event payload.
-      // https://github.com/Esri/calcite-components/issues/3163
       switched: this.checked
     });
   }
@@ -155,8 +143,10 @@ export class Switch implements LabelableComponent, CheckableFormCompoment {
 
   /**
    * Fires when the checked value has changed.
+   *
+   * **Note:** The event payload is deprecated, please use the `checked` property on the component instead
    */
-  @Event() calciteSwitchChange: EventEmitter;
+  @Event() calciteSwitchChange: EventEmitter<DeprecatedEventPayload>;
 
   //--------------------------------------------------------------------------
   //
@@ -181,8 +171,8 @@ export class Switch implements LabelableComponent, CheckableFormCompoment {
     disconnectForm(this);
   }
 
-  componentWillLoad(): void {
-    this.tabindex = this.el.getAttribute("tabindex") || this.disabled ? -1 : 0;
+  componentDidRender(): void {
+    updateHostInteraction(this);
   }
 
   // --------------------------------------------------------------------------
@@ -193,15 +183,14 @@ export class Switch implements LabelableComponent, CheckableFormCompoment {
 
   render(): VNode {
     return (
-      <Host onKeyDown={this.keyDownHandler}>
+      <Host onClick={this.clickHandler} onKeyDown={this.keyDownHandler}>
         <div
-          aria-checked={this.checked.toString()}
+          aria-checked={toAriaBoolean(this.checked)}
           aria-label={getLabelText(this)}
           class="container"
-          onClick={this.clickHandler}
           ref={this.setSwitchEl}
           role="switch"
-          tabindex={this.tabindex}
+          tabIndex={0}
         >
           <div class="track">
             <div class="handle" />

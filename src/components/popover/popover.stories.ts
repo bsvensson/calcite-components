@@ -1,43 +1,9 @@
 import { select, number, text } from "@storybook/addon-knobs";
-import { html } from "../../tests/utils";
+import { html } from "../../../support/formatting";
 import { boolean, createSteps, stepStory, setTheme, setKnobs } from "../../../.storybook/helpers";
+import { placements } from "../../utils/floating-ui";
 import readme from "./readme.md";
-import managerReadme from "../popover-manager/readme.md";
-
-const placements = [
-  "auto",
-  "auto-start",
-  "auto-end",
-  "top-start",
-  "top-end",
-  "bottom-start",
-  "bottom-end",
-  "right-start",
-  "right-end",
-  "left-start",
-  "left-end"
-];
-
-const calcite_placements = placements.concat([
-  "leading-start",
-  "leading",
-  "leading-end",
-  "trailing-end",
-  "trailing",
-  "trailing-start",
-  "leading-leading",
-  "leading-trailing",
-  "trailing-leading",
-  "trailing-trailing",
-  "top-leading",
-  "top-trailing",
-  "bottom-leading",
-  "bottom-trailing",
-  "right-leading",
-  "right-trailing",
-  "left-leading",
-  "left-trailing"
-]);
+import { defaultPopoverPlacement } from "../popover/resources";
 
 const contentHTML = `
 <div style="width: 300px; padding:12px 16px;">
@@ -53,20 +19,20 @@ const nestedReferenceElementHTML = `Ut enim ad minim veniam, quis <calcite-butto
 export default {
   title: "Components/Popover",
   parameters: {
-    notes: [readme, managerReadme]
+    notes: [readme]
   }
 };
 
 export const Simple = stepStory(
   (): string => html`
     <div style="width: 400px;">
-      <calcite-popover-manager>${referenceElementHTML}</calcite-popover-manager>
+      ${referenceElementHTML}
       <calcite-popover
         ${boolean("dismissible", false)}
         ${boolean("disable-flip", false)}
         ${boolean("disable-pointer", false)}
         reference-element="reference-element"
-        placement="${select("placement", calcite_placements, "auto")}"
+        placement="${select("placement", placements, defaultPopoverPlacement)}"
         offset-distance="${number("offset-distance", 6)}"
         offset-skidding="${number("offset-skidding", 0)}"
         ${boolean("open", false)}
@@ -93,25 +59,23 @@ export const Simple = stepStory(
 export const Nested = stepStory(
   (): string => html`
     <div style="width: 400px;">
-      <calcite-popover-manager>
-        ${referenceElementHTML}
+      ${referenceElementHTML}
+      <calcite-popover
+        ${boolean("dismissible", true)}
+        reference-element="reference-element"
+        placement="${select("placement", placements, defaultPopoverPlacement)}"
+        ${boolean("open", false)}
+      >
+        <div style="width: 300px; padding:12px 16px;">${nestedReferenceElementHTML}</div>
         <calcite-popover
           ${boolean("dismissible", true)}
-          reference-element="reference-element"
-          placement="${select("placement", calcite_placements, "auto")}"
+          reference-element="reference-element-nested"
+          placement="${select("placement", placements, defaultPopoverPlacement)}"
           ${boolean("open", false)}
         >
-          <div style="width: 300px; padding:12px 16px;">${nestedReferenceElementHTML}</div>
-          <calcite-popover
-            ${boolean("dismissible", true)}
-            reference-element="reference-element-nested"
-            placement="${select("placement", calcite_placements, "auto")}"
-            ${boolean("open", false)}
-          >
-            ${contentHTML}
-          </calcite-popover>
+          ${contentHTML}
         </calcite-popover>
-      </calcite-popover-manager>
+      </calcite-popover>
     </div>
   `,
   createSteps("calcite-popover")
@@ -119,4 +83,28 @@ export const Nested = stepStory(
     .snapshot("Single popover open")
     .click("#reference-element-nested")
     .snapshot("Multiple popovers open")
+);
+
+export const Heading = stepStory(
+  (): string => html`
+    <div style="width: 400px;">
+      ${referenceElementHTML}
+      <calcite-popover
+        ${boolean("dismissible", false)}
+        reference-element="reference-element"
+        placement="${select("placement", placements, defaultPopoverPlacement)}"
+        ${boolean("open", false)}
+        text-close="${text("text-close", "Close")}"
+        heading="Heading"
+      >
+        ${contentHTML}
+      </calcite-popover>
+    </div>
+  `,
+  createSteps("calcite-popover")
+    .click("#reference-element")
+    .snapshot("Open Popover with Heading")
+    .executeScript(setKnobs({ story: "components-popover--heading", knobs: [{ name: "dismissible", value: "true" }] }))
+    .click("#reference-element")
+    .snapshot("Open Popover with Dismissible Heading")
 );

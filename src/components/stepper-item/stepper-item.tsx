@@ -6,12 +6,19 @@ import {
   h,
   Host,
   Listen,
+  Method,
   Prop,
   VNode,
   Watch
 } from "@stencil/core";
-import { getElementProp } from "../../utils/dom";
-import { Scale } from "../interfaces";
+import { getElementProp, toAriaBoolean } from "../../utils/dom";
+import { Layout, Scale } from "../interfaces";
+import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
+import {
+  StepperItemChangeEventDetail,
+  StepperItemEventDetail,
+  StepperItemKeyEventDetail
+} from "../stepper/interfaces";
 
 /**
  * @slot - A slot for adding custom content.
@@ -21,7 +28,7 @@ import { Scale } from "../interfaces";
   styleUrl: "stepper-item.scss",
   shadow: true
 })
-export class StepperItem {
+export class StepperItem implements InteractiveComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -45,19 +52,33 @@ export class StepperItem {
   @Prop() error = false;
 
   /** is the step disabled and not navigable to by a user */
-  @Prop() disabled = false;
+  @Prop({ reflect: true }) disabled = false;
 
-  /** pass a title for the stepper item */
+  /**
+   * pass a title for the stepper item
+   *
+   * @deprecated use heading instead
+   */
   @Prop() itemTitle?: string;
 
-  /** pass a title for the stepper item */
+  /** stepper item heading */
+  @Prop() heading?: string;
+
+  /**
+   * pass a title for the stepper item
+   *
+   * @deprecated use description instead
+   */
   @Prop() itemSubtitle?: string;
+
+  /** stepper item description */
+  @Prop() description: string;
 
   // internal props inherited from wrapping calcite-stepper
   /** pass a title for the stepper item */
   /** @internal */
-
-  @Prop({ reflect: true, mutable: true }) layout?: string;
+  @Prop({ reflect: true, mutable: true }) layout?: Extract<"horizontal" | "vertical", Layout> =
+    "horizontal";
 
   /** should the items display an icon based on status */
   /** @internal */
@@ -72,9 +93,25 @@ export class StepperItem {
   @Prop({ reflect: true, mutable: true }) scale: Scale = "m";
 
   // watch for removal of disabled to register step
-  @Watch("disabled") disabledWatcher(): void {
+  @Watch("disabled")
+  disabledWatcher(): void {
     this.registerStepperItem();
   }
+
+  @Watch("active")
+  activeWatcher(active: boolean): void {
+    if (active) {
+      this.emitRequestedItem();
+    }
+  }
+
+  //--------------------------------------------------------------------------
+  //
+  //  Internal State/Props
+  //
+  //--------------------------------------------------------------------------
+
+  headerEl: HTMLDivElement;
 
   //--------------------------------------------------------------------------
   //
@@ -85,17 +122,23 @@ export class StepperItem {
   /**
    * @internal
    */
-  @Event() calciteStepperItemKeyEvent: EventEmitter;
+  @Event() calciteInternalStepperItemKeyEvent: EventEmitter<StepperItemKeyEventDetail>;
 
   /**
    * @internal
    */
-  @Event() calciteStepperItemSelect: EventEmitter;
+  @Event() calciteInternalStepperItemSelect: EventEmitter<StepperItemEventDetail>;
 
   /**
    * @internal
    */
-  @Event() calciteStepperItemRegister: EventEmitter;
+  @Event()
+  calciteInternalUserRequestedStepperItemSelect: EventEmitter<StepperItemChangeEventDetail>;
+
+  /**
+   * @internal
+   */
+  @Event() calciteInternalStepperItemRegister: EventEmitter<StepperItemEventDetail>;
 
   //--------------------------------------------------------------------------
   //
@@ -109,39 +152,39 @@ export class StepperItem {
     this.layout = getElementProp(this.el, "layout", false);
     this.scale = getElementProp(this.el, "scale", "m");
     this.parentStepperEl = this.el.parentElement as HTMLCalciteStepperElement;
-  }
-
-  componentDidLoad(): void {
     this.itemPosition = this.getItemPosition();
-    this.itemContent = this.getItemContent();
     this.registerStepperItem();
+
     if (this.active) {
       this.emitRequestedItem();
     }
   }
 
-  componentDidUpdate(): void {
-    if (this.active) {
-      this.emitRequestedItem();
-    }
+  componentDidRender(): void {
+    updateHostInteraction(this, true);
   }
 
   render(): VNode {
     return (
       <Host
-        aria-expanded={this.active.toString()}
-        onClick={() => this.emitRequestedItem()}
-        tabindex={this.disabled ? null : 0}
+        aria-expanded={toAriaBoolean(this.active)}
+        onClick={this.emitUserRequestedItem}
+        onKeyDown={this.keyDownHandler}
       >
         <div class="container">
-          <div class="stepper-item-header">
+          <div
+            class="stepper-item-header"
+            ref={(el) => (this.headerEl = el)}
+            tabIndex={
+              /* additional tab index logic needed because of display: contents */
+              this.layout === "horizontal" && !this.disabled ? 0 : null
+            }
+          >
             {this.icon ? this.renderIcon() : null}
-            {this.numbered ? (
-              <div class="stepper-item-number">{this.getItemPosition() + 1}.</div>
-            ) : null}
+            {this.numbered ? <div class="stepper-item-number">{this.itemPosition + 1}.</div> : null}
             <div class="stepper-item-header-text">
-              <span class="stepper-item-title">{this.itemTitle}</span>
-              <span class="stepper-item-subtitle">{this.itemSubtitle}</span>
+              <span class="stepper-item-heading">{this.heading || this.itemTitle}</span>
+              <span class="stepper-item-description">{this.description || this.itemSubtitle}</span>
             </div>
           </div>
           <div class="stepper-item-content">
@@ -158,33 +201,26 @@ export class StepperItem {
   //
   //--------------------------------------------------------------------------
 
-  @Listen("keydown") keyDownHandler(e: KeyboardEvent): void {
-    if (!this.disabled && e.target === this.el) {
-      switch (e.key) {
-        case " ":
-        case "Enter":
-          this.emitRequestedItem();
-          e.preventDefault();
-          break;
-        case "ArrowUp":
-        case "ArrowDown":
-        case "ArrowLeft":
-        case "ArrowRight":
-        case "Home":
-        case "End":
-          this.calciteStepperItemKeyEvent.emit({ item: e });
-          e.preventDefault();
-          break;
-      }
-    }
-  }
-
-  @Listen("calciteStepperItemChange", { target: "body" })
-  updateActiveItemOnChange(event: CustomEvent): void {
-    if (event.target === this.parentStepperEl) {
+  @Listen("calciteInternalStepperItemChange", { target: "body" })
+  updateActiveItemOnChange(event: CustomEvent<StepperItemChangeEventDetail>): void {
+    if (
+      event.target === this.parentStepperEl ||
+      event.composedPath().includes(this.parentStepperEl)
+    ) {
       this.activePosition = event.detail.position;
       this.determineActiveItem();
     }
+  }
+
+  //--------------------------------------------------------------------------
+  //
+  //  Public Methods
+  //
+  //--------------------------------------------------------------------------
+
+  @Method()
+  async setFocus(): Promise<void> {
+    (this.layout === "vertical" ? this.el : this.headerEl)?.focus();
   }
 
   //--------------------------------------------------------------------------
@@ -198,9 +234,6 @@ export class StepperItem {
   /** the latest requested item position*/
   private activePosition: number;
 
-  /** the slotted item content */
-  private itemContent: HTMLElement[] | NodeListOf<any>;
-
   /** the parent stepper component */
   private parentStepperEl: HTMLCalciteStepperElement;
 
@@ -209,6 +242,27 @@ export class StepperItem {
   //  Private Methods
   //
   //--------------------------------------------------------------------------
+
+  private keyDownHandler = (event: KeyboardEvent): void => {
+    if (!this.disabled && event.target === this.el) {
+      switch (event.key) {
+        case " ":
+        case "Enter":
+          this.emitUserRequestedItem();
+          event.preventDefault();
+          break;
+        case "ArrowUp":
+        case "ArrowDown":
+        case "ArrowLeft":
+        case "ArrowRight":
+        case "Home":
+        case "End":
+          this.calciteInternalStepperItemKeyEvent.emit({ item: event });
+          event.preventDefault();
+          break;
+      }
+    }
+  };
 
   private renderIcon(): VNode {
     const path = this.active
@@ -227,33 +281,34 @@ export class StepperItem {
   }
 
   private registerStepperItem(): void {
-    this.calciteStepperItemRegister.emit({
-      position: this.itemPosition,
-      content: this.itemContent
+    this.calciteInternalStepperItemRegister.emit({
+      position: this.itemPosition
     });
   }
 
-  private emitRequestedItem(): void {
+  private emitUserRequestedItem = (): void => {
+    this.emitRequestedItem();
     if (!this.disabled) {
-      this.calciteStepperItemSelect.emit({
-        position: this.itemPosition,
-        content: this.itemContent
+      const position = this.itemPosition;
+
+      this.calciteInternalUserRequestedStepperItemSelect.emit({
+        position
       });
     }
-  }
+  };
 
-  private getItemContent(): HTMLElement[] | NodeListOf<any> {
-    // todo: Remove IE/Edge specific code.
-    return this.el.shadowRoot?.querySelector("slot")
-      ? (this.el.shadowRoot.querySelector("slot").assignedNodes({ flatten: true }) as HTMLElement[])
-      : this.el.querySelector(".stepper-item-content")
-      ? (this.el.querySelector(".stepper-item-content").childNodes as NodeListOf<any>)
-      : null;
-  }
+  private emitRequestedItem = (): void => {
+    if (!this.disabled) {
+      const position = this.itemPosition;
+
+      this.calciteInternalStepperItemSelect.emit({
+        position
+      });
+    }
+  };
 
   private getItemPosition(): number {
-    return Array.prototype.indexOf.call(
-      this.parentStepperEl.querySelectorAll("calcite-stepper-item"),
+    return Array.from(this.parentStepperEl?.querySelectorAll("calcite-stepper-item")).indexOf(
       this.el
     );
   }

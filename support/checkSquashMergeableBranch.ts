@@ -1,6 +1,4 @@
-const childProcess = require("child_process");
-const pify = require("pify");
-const exec = pify(childProcess.exec);
+import pify from "pify";
 
 /*
 This script checks how many commits there are on a branch;
@@ -9,14 +7,17 @@ This ensures a conventional commit message when PRs are squash-merged.
 */
 
 (async function runner(): Promise<void> {
+  const childProcess = await import("child_process");
+  const exec = pify(childProcess.exec);
+
   const conventionalCommitRegex =
     /^((build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([\w ,-]+\))?(!)?: [\w ])+([\s\S]*)/;
 
   const currentBranch = (await exec(`git rev-parse --abbrev-ref HEAD`, { encoding: "utf-8" })).trim();
 
-  const commits = (await exec(`git log --format=%B ${currentBranch} --not master | tr '\n' ';'`, { encoding: "utf-8" }))
+  const commits = (await exec(`git log --format=%B ${currentBranch} --not master`, { encoding: "utf-8" }))
     .trim()
-    .split(";")
+    .split("\n")
     .filter((commit: string) => !!commit);
 
   process.exitCode = commits.length === 1 ? (conventionalCommitRegex.test(commits[0]) ? 0 : 1) : 0;
