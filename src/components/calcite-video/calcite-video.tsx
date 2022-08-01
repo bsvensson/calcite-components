@@ -116,17 +116,17 @@ export class CalciteVideo {
   /**
    * This event is fired when the video begins to play
    */
-  @Event() calciteVideoPlay: EventEmitter;
+  @Event() calciteVideoPlay: EventEmitter<any>;
 
   /**
    * This event is fired when the video is paused
    */
-  @Event() calciteVideoPause: EventEmitter;
+  @Event() calciteVideoPause: EventEmitter<any>;
 
   /**
    * This event is fired when the video is complete
    */
-  @Event() calciteVideoComplete: EventEmitter;
+  @Event() calciteVideoComplete: EventEmitter<any>;
 
   //--------------------------------------------------------------------------
   //
@@ -160,8 +160,8 @@ export class CalciteVideo {
         <calcite-slider
           max={1}
           min={0}
-          onCalciteSliderInput={(e) => this.updateVolumeLevel(e)}
-          onKeyDown={(e) => this.handleVolumeSliderKeyDown(e)}
+          onCalciteSliderInput={(event) => this.updateVolumeLevel(event)}
+          onKeyDown={(event) => this.handleVolumeSliderKeyDown(event)}
           step={0.1}
           value={!this.muted ? (this.volumeLevel as number) : 0}
         />
@@ -211,7 +211,8 @@ export class CalciteVideo {
           <calcite-dropdown-group selection-mode="single">
             <calcite-dropdown-item
               active={!this.isSubtitleActive}
-              onCalciteDropdownItemSelect={(e) => this.handleSubtitleSelection(e)}
+              onClick={() => this.handleSubtitleSelection("")}
+              onKeyDown={() => this.handleVolumeSliderKeyDown("")}
             >
               Off
             </calcite-dropdown-item>
@@ -234,8 +235,8 @@ export class CalciteVideo {
       <div class="calcite-video-scrubber-wrapper">
         <calcite-slider
           class="calcite-video-scrubber"
-          onCalciteSliderUpdate={(e) => this.updatePlaybackPosition(e)}
-          onKeyDown={(e) => this.handleScrubberKeyDown(e)}
+          onCalciteSliderUpdate={(event) => this.updatePlaybackPosition(event)}
+          onKeyDown={(event) => this.handleScrubberKeyDown(event)}
           ref={(el) => (this.scrubberEl = el)}
         />
       </div>
@@ -307,8 +308,8 @@ export class CalciteVideo {
   //--------------------------------------------------------------------------
 
   // pause other instances of video on page when another starts
-  @Listen("calciteVideoPlay", { target: "window" }) videoPlayListener(e: CustomEvent): void {
-    if (e.target !== this.el) {
+  @Listen("calciteVideoPlay", { target: "window" }) videoPlayListener(event: CustomEvent): void {
+    if (event.target !== this.el) {
       this.pauseVideo();
     }
   }
@@ -343,7 +344,7 @@ export class CalciteVideo {
     }
   }
 
-  @Listen("keydown") keydownListener(e: KeyboardEvent): void {
+  @Listen("keydown") keydownListener(event: KeyboardEvent): void {
     if (!this.isLoading && !this.playOnHover && e.composedPath()[0] === this.el) {
       const key = e.key;
       if (key === " " || key === "Enter") {
@@ -465,8 +466,8 @@ export class CalciteVideo {
         const node = (
           <calcite-dropdown-item
             active={this.isSubtitleActive && this.subLang === item.language}
-            data-language={item.language}
-            onCalciteDropdownItemSelect={(e) => this.handleSubtitleSelection(e)}
+            onClick={() => this.handleSubtitleSelection(item.language)}
+            onKeyDown={() => this.handleVolumeSliderKeyDown(item.language)}
           >
             {item.language.toUpperCase()}
           </calcite-dropdown-item>
@@ -490,10 +491,9 @@ export class CalciteVideo {
     }
   }
 
-  handleSubtitleSelection(e: any): void {
+  handleSubtitleSelection(requestedLang: string): void {
     // if more than one language, show a menu and toggle on selection
     // if user selects "off" - disable all
-    const requestedLang = e.target.dataset.language;
     if (this.availableSubtitles) {
       for (const item of Object.values(this.availableSubtitles)) {
         item.mode = "hidden";
@@ -537,13 +537,13 @@ export class CalciteVideo {
     this.muted = !this.muted;
   }
 
-  updateVolumeLevel(e: any): void {
+  updateVolumeLevel(event: any): void {
     this.volumeLevel = e.target.value;
     this.videoEl.volume = this.volumeLevel as number;
     this.muted = this.volumeLevel === 0;
   }
 
-  handleScrubberKeyDown(e: any): void {
+  handleScrubberKeyDown(event: any): void {
     const key = e.key;
     if (key === " " || key === "Enter") {
       e.preventDefault();
@@ -551,7 +551,7 @@ export class CalciteVideo {
     }
   }
 
-  handleVolumeSliderKeyDown(e: any): void {
+  handleVolumeSliderKeyDown(event: any): void {
     const key = e.key;
     if (key === " " || key === "Enter") {
       e.preventDefault();
@@ -559,8 +559,8 @@ export class CalciteVideo {
     }
   }
 
-  updatePlaybackPosition(e: any): void {
-    const requestedTime = (e.target.value / 100) * (this.duration as number);
+  updatePlaybackPosition(event: any): void {
+    const requestedTime = (event.target.value / 100) * (this.duration as number);
     this.currentTime = requestedTime;
     this.videoEl.currentTime = this.currentTime as number;
   }
