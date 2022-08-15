@@ -7,6 +7,25 @@
   "es2015": "dist/esm/index.js",
   "es2017": "dist/esm/index.js",
   "jsnext:main": "dist/esm/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs.js"
+    },
+    "./dist/loader": {
+      "import": "./dist/loader/index.js",
+      "require": "./dist/loader/index.cjs.js"
+    },
+    "./dist/components/*": {
+      "import": "./dist/components/*"
+    },
+    "./dist/components": {
+      "import": "./dist/components/index.js"
+    },
+    "./dist/custom-elements": {
+      "import": "./dist/custom-elements/index.js"
+    }
+  },
   "types": "dist/types/components.d.ts",
   "type": "module",
   "unpkg": "dist/calcite/calcite.js",
