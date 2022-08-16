@@ -25,7 +25,7 @@
     "./dist/custom-elements": {
       "import": "./dist/custom-elements/index.js"
     },
-    "./dist/calcite/calcite.css": "./dist/calcite/calcite.css"
+    "./dist/calcite/*": "./dist/calcite/*"
   },
   "types": "dist/types/components.d.ts",
   "type": "module",
