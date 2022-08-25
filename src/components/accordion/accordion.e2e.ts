@@ -1,5 +1,5 @@
 import { newE2EPage } from "@stencil/core/testing";
-import { accessible, renders } from "../../tests/commonTests";
+import { accessible, renders, hidden } from "../../tests/commonTests";
 import { html } from "../../../support/formatting";
 import { CSS } from "../accordion-item/resources";
 
@@ -15,6 +15,8 @@ describe("calcite-accordion", () => {
   `;
   it("renders", async () => renders("calcite-accordion", { display: "block" }));
 
+  it("honors hidden attribute", async () => hidden("calcite-accordion"));
+
   it("is accessible", async () => accessible(`<calcite-accordion>${accordionContent}</calcite-accordion>`));
 
   it("renders default props when none are provided", async () => {
@@ -24,7 +26,7 @@ describe("calcite-accordion", () => {
     ${accordionContent}
     </calcite-accordion>`);
     const element = await page.find("calcite-accordion");
-    expect(element).toEqualAttribute("appearance", "default");
+    expect(element).toEqualAttribute("appearance", "solid");
     expect(element).toEqualAttribute("icon-position", "end");
     expect(element).toEqualAttribute("scale", "m");
     expect(element).toEqualAttribute("selection-mode", "multi");
