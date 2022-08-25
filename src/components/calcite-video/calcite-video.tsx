@@ -345,10 +345,10 @@ export class CalciteVideo {
   }
 
   @Listen("keydown") keydownListener(event: KeyboardEvent): void {
-    if (!this.isLoading && !this.playOnHover && e.composedPath()[0] === this.el) {
-      const key = e.key;
+    if (!this.isLoading && !this.playOnHover && event.composedPath()[0] === this.el) {
+      const key = event.key;
       if (key === " " || key === "Enter") {
-        e.preventDefault();
+        event.preventDefault();
         this.toggleVideo();
       }
     }
@@ -538,23 +538,23 @@ export class CalciteVideo {
   }
 
   updateVolumeLevel(event: any): void {
-    this.volumeLevel = e.target.value;
+    this.volumeLevel = event.target.value;
     this.videoEl.volume = this.volumeLevel as number;
     this.muted = this.volumeLevel === 0;
   }
 
   handleScrubberKeyDown(event: any): void {
-    const key = e.key;
+    const key = event.key;
     if (key === " " || key === "Enter") {
-      e.preventDefault();
+      event.preventDefault();
       this.toggleVideo();
     }
   }
 
   handleVolumeSliderKeyDown(event: any): void {
-    const key = e.key;
+    const key = event.key;
     if (key === " " || key === "Enter") {
-      e.preventDefault();
+      event.preventDefault();
       this.toggleMuted();
     }
   }
