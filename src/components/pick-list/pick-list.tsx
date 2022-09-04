@@ -68,7 +68,7 @@ export class PickList<
   /**
    * Placeholder text for the filter input field.
    */
-  @Prop({ reflect: true }) filterPlaceholder: string;
+  @Prop() filterPlaceholder: string;
 
   /**
    * Specifies the number at which section headings should start.

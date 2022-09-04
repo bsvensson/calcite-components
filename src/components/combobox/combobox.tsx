@@ -211,7 +211,7 @@ export class Combobox
    *
    * @default "Remove tag"
    */
-  @Prop({ reflect: false }) intlRemoveTag: string = TEXT.removeTag;
+  @Prop() intlRemoveTag: string = TEXT.removeTag;
 
   /**
    * Defines the available placements that can be used when a flip occurs.

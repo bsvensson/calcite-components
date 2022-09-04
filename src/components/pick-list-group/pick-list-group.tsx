@@ -28,7 +28,7 @@ export class PickListGroup implements ConditionalSlotComponent {
    * Specifies the title for all nested `calcite-pick-list-item`s.
    *
    */
-  @Prop({ reflect: true }) groupTitle: string;
+  @Prop() groupTitle: string;
 
   /**
    * Specifies the number at which section headings should start.

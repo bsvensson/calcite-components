@@ -74,21 +74,21 @@ export class InlineEditable implements InteractiveComponent, LabelableComponent 
    *
    * @default "Click to edit"
    */
-  @Prop({ reflect: true }) intlEnableEditing = TEXT.intlEnablingEditing;
+  @Prop() intlEnableEditing = TEXT.intlEnablingEditing;
 
   /**
    * specify text to be user for the cancel editing button's aria-label, defaults to `Cancel`
    *
    * @default "Cancel"
    */
-  @Prop({ reflect: true }) intlCancelEditing = TEXT.intlCancelEditing;
+  @Prop() intlCancelEditing = TEXT.intlCancelEditing;
 
   /**
    * specify text to be user for the confirm changes button's aria-label, defaults to `Save`
    *
    * @default "Save"
    */
-  @Prop({ reflect: true }) intlConfirmChanges = TEXT.intlConfirmChanges;
+  @Prop() intlConfirmChanges = TEXT.intlConfirmChanges;
 
   /** specify the scale of the inline-editable component, defaults to the scale of the wrapped calcite-input or the scale of the closest wrapping component with a set scale */
   @Prop({ reflect: true, mutable: true }) scale?: Scale;

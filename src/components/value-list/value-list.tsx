@@ -75,7 +75,7 @@ export class ValueList<
   /**
    * Placeholder text for the filter's input field.
    */
-  @Prop({ reflect: true }) filterPlaceholder: string;
+  @Prop() filterPlaceholder: string;
 
   /**
    * The component's group identifier.

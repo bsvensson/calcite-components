@@ -108,7 +108,7 @@ export class Notice implements ConditionalSlotComponent {
    *
    * @default "Close"
    */
-  @Prop({ reflect: false }) intlClose: string = TEXT.close;
+  @Prop() intlClose: string = TEXT.close;
 
   /** Specifies the size of the component. */
   @Prop({ reflect: true }) scale: Scale = "m";

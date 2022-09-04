@@ -63,14 +63,14 @@ export class Card implements ConditionalSlotComponent {
    *
    * @default "Select"
    */
-  @Prop({ reflect: false }) intlSelect: string = TEXT.select;
+  @Prop() intlSelect: string = TEXT.select;
 
   /**
    * string to override English deselect text for checkbox when selectable is true
    *
    * @default "Deselect"
    */
-  @Prop({ reflect: false }) intlDeselect: string = TEXT.deselect;
+  @Prop() intlDeselect: string = TEXT.deselect;
 
   @Prop() thumbnailPosition: LogicalFlowPosition = "block-start";
 

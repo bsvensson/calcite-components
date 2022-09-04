@@ -115,7 +115,7 @@ export class PickListItem implements ConditionalSlotComponent, InteractiveCompon
    *
    * @default "Remove"
    */
-  @Prop({ reflect: true }) intlRemove = TEXT.remove;
+  @Prop() intlRemove = TEXT.remove;
 
   /**
    * The component's value.
