@@ -16,15 +16,25 @@ Renders a `calcite-action` that has a clear background.
 
 ### With-text-displayed
 
-Renders a `calcite-action` that displays text along side an icon and a tooltip label.
+Renders a `calcite-action` that displays text alongside an icon.
 
 ```html
 <calcite-action label="Performs my custom action" text="Perform Action!" text-enabled icon="save"></calcite-action>
 ```
 
+### With-tooltip
+
+Renders a `calcite-action` that displays text alongside an icon. A `calcite-tooltip` will be displayed on hover or focus.
+
+```html
+<calcite-action label="Performs my custom action" text="Perform Action!" text-enabled icon="save"
+  ><calcite-tooltip slot="tooltip">Save me!</calcite-tooltip></calcite-action
+>
+```
+
 ### Without-text-displayed
 
-Renders a `calcite-action` that displays only an icon and a tooltip label.
+Renders a `calcite-action` that displays only an icon.
 
 ```html
 <calcite-action label="Performs my custom action" text="My Custom Action" icon="plus"></calcite-action>
@@ -84,6 +94,7 @@ Type: `Promise<void>`
 - [calcite-action-group](../action-group)
 - [calcite-action-menu](../action-menu)
 - [calcite-action-pad](../action-pad)
+- [calcite-flow-item](../flow-item)
 - [calcite-panel](../panel)
 - [calcite-pick-list-item](../pick-list-item)
 - [calcite-popover](../popover)
@@ -105,6 +116,7 @@ graph TD;
   calcite-action-group --> calcite-action
   calcite-action-menu --> calcite-action
   calcite-action-pad --> calcite-action
+  calcite-flow-item --> calcite-action
   calcite-panel --> calcite-action
   calcite-pick-list-item --> calcite-action
   calcite-popover --> calcite-action

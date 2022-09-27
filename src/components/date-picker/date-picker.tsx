@@ -11,12 +11,25 @@ import {
   VNode,
   Build
 } from "@stencil/core";
-import { getLocaleData, DateLocaleData } from "./utils";
-import { dateFromRange, dateFromISO, dateToISO, getDaysDiff, HoverRange } from "../../utils/date";
+import { getLocaleData, DateLocaleData, getValueAsDateRange } from "./utils";
+import {
+  dateFromRange,
+  dateFromISO,
+  dateToISO,
+  getDaysDiff,
+  HoverRange,
+  setEndOfDay
+} from "../../utils/date";
 import { HeadingLevel } from "../functional/Heading";
 
 import { DateRangeChange } from "./interfaces";
 import { HEADING_LEVEL, TEXT } from "./resources";
+import {
+  GlobalAttrComponent,
+  unwatchGlobalAttributes,
+  watchGlobalAttributes
+} from "../../utils/globalAttributes";
+import { getLocale, LangComponent } from "../../utils/locale";
 
 @Component({
   assetsDirs: ["assets"],
@@ -24,7 +37,7 @@ import { HEADING_LEVEL, TEXT } from "./resources";
   styleUrl: "date-picker.scss",
   shadow: true
 })
-export class DatePicker {
+export class DatePicker implements GlobalAttrComponent, LangComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -37,8 +50,9 @@ export class DatePicker {
   //  Public Properties
   //
   //--------------------------------------------------------------------------
+
   /** Active range */
-  @Prop() activeRange?: "start" | "end";
+  @Prop({ reflect: true }) activeRange?: "start" | "end";
 
   /** Selected date */
   @Prop({ mutable: true }) value?: string | string[];
@@ -46,7 +60,7 @@ export class DatePicker {
   /**
    * Number at which section headings should start for this component.
    */
-  @Prop() headingLevel: HeadingLevel;
+  @Prop({ reflect: true }) headingLevel: HeadingLevel;
 
   /** Selected date as full date object*/
   @Prop({ mutable: true }) valueAsDate?: Date | Date[];
@@ -88,7 +102,7 @@ export class DatePicker {
   }
 
   /** Earliest allowed date ("yyyy-mm-dd") */
-  @Prop({ mutable: true }) min?: string;
+  @Prop({ mutable: true, reflect: true }) min?: string;
 
   @Watch("min")
   onMinChanged(min: string): void {
@@ -98,7 +112,7 @@ export class DatePicker {
   }
 
   /** Latest allowed date ("yyyy-mm-dd") */
-  @Prop({ mutable: true }) max?: string;
+  @Prop({ mutable: true, reflect: true }) max?: string;
 
   @Watch("max")
   onMaxChanged(max: string): void {
@@ -128,8 +142,13 @@ export class DatePicker {
    */
   @Prop() intlYear?: string = TEXT.year;
 
-  /** BCP 47 language tag for desired language and country format */
-  @Prop() locale?: string = document.documentElement.lang || "en";
+  /**
+   * BCP 47 language tag for desired language and country format
+   *
+   * @deprecated set the global `lang` attribute on the element instead.
+   * @mdn [lang](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/lang)
+   */
+  @Prop() locale?: string;
 
   /** specify the scale of the date picker */
   @Prop({ reflect: true }) scale: "s" | "m" | "l" = "m";
@@ -142,17 +161,17 @@ export class DatePicker {
    *
    * @deprecated use value instead
    */
-  @Prop({ mutable: true }) start?: string;
+  @Prop({ mutable: true, reflect: true }) start?: string;
 
   /**
    * Selected end date
    *
    * @deprecated use value instead
    */
-  @Prop({ mutable: true }) end?: string;
+  @Prop({ mutable: true, reflect: true }) end?: string;
 
   /** Disables the default behaviour on the third click of narrowing or extending the range and instead starts a new range. */
-  @Prop() proximitySelectionDisabled = false;
+  @Prop({ reflect: true }) proximitySelectionDisabled = false;
 
   //--------------------------------------------------------------------------
   //
@@ -186,6 +205,8 @@ export class DatePicker {
    */
   @State() activeEndDate: Date;
 
+  @State() globalAttributes = {};
+
   // --------------------------------------------------------------------------
   //
   //  Lifecycle
@@ -193,7 +214,7 @@ export class DatePicker {
   // --------------------------------------------------------------------------
   connectedCallback(): void {
     if (Array.isArray(this.value)) {
-      this.valueAsDate = this.value.map((v) => dateFromISO(v));
+      this.valueAsDate = getValueAsDateRange(this.value);
       this.start = this.value[0];
       this.end = this.value[1];
     } else if (this.value) {
@@ -215,6 +236,12 @@ export class DatePicker {
     if (this.max) {
       this.maxAsDate = dateFromISO(this.max);
     }
+
+    watchGlobalAttributes(this, ["lang"]);
+  }
+
+  disconnectedCallback(): void {
+    unwatchGlobalAttributes(this);
   }
 
   async componentWillLoad(): Promise<void> {
@@ -294,7 +321,7 @@ export class DatePicker {
   @Watch("value")
   valueHandler(value: string | string[]): void {
     if (Array.isArray(value)) {
-      this.valueAsDate = value.map((v) => dateFromISO(v));
+      this.valueAsDate = getValueAsDateRange(value);
       this.start = value[0];
       this.end = value[1];
     } else if (value) {
@@ -314,14 +341,14 @@ export class DatePicker {
     this.setEndAsDate(dateFromISO(end));
   }
 
+  @Watch("globalAttributes")
   @Watch("locale")
   private async loadLocaleData(): Promise<void> {
     if (!Build.isBrowser) {
       return;
     }
 
-    const { locale } = this;
-    this.localeData = await getLocaleData(locale);
+    this.localeData = await getLocaleData(getLocale(this));
   }
 
   monthHeaderSelectChange = (event: CustomEvent<Date>): void => {
@@ -491,7 +518,7 @@ export class DatePicker {
    * @param emit
    */
   private setEndAsDate(endDate: Date, emit?: boolean): void {
-    this.endAsDate = endDate;
+    this.endAsDate = endDate ? setEndOfDay(endDate) : endDate;
     this.mostRecentRangeValue = this.endAsDate;
     if (emit) {
       this.calciteDatePickerRangeChange.emit({
