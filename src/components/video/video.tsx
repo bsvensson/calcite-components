@@ -11,12 +11,12 @@ import {
   VNode
 } from "@stencil/core";
 import { getElementDir } from "../../utils/dom";
-import { TEXT } from "./calcite-video.resources";
+import { TEXT } from "./video.resources";
 import { Scale } from "../interfaces";
 
 @Component({
   tag: "calcite-video",
-  styleUrl: "calcite-video.scss",
+  styleUrl: "video.scss",
   shadow: false
 })
 export class CalciteVideo {
@@ -27,7 +27,6 @@ export class CalciteVideo {
   //--------------------------------------------------------------------------
 
   // todo buffer length indicator
-  // todo speed 1.5 .5x toggle
   // quality hd etc toggle
 
   /** specify the scale of the video player, defaults to m */
@@ -59,6 +58,9 @@ export class CalciteVideo {
 
   /** disable progress */
   @Prop({ reflect: true }) disableProgress?: boolean;
+
+  /** disable progress */
+  @Prop({ reflect: true }) disablePlaybackRate?: boolean;
 
   /** disable controls */
   @Prop({ reflect: true }) disableControls?: boolean;
@@ -252,6 +254,62 @@ export class CalciteVideo {
       </div>
     );
 
+    const playbackRateSelector = (
+      <div class="calcite-video-control-item calcite-video-playback-rate-control-item">
+        <calcite-dropdown width="s">
+          <calcite-action
+            icon={
+              this.currentPlaybackRate === 0.25
+                ? "1-4x"
+                : this.currentPlaybackRate === 0.5
+                ? "1-2x"
+                : this.currentPlaybackRate === 1
+                ? "1x"
+                : "2x"
+            }
+            icon-flip-rtl
+            indicator={this.currentPlaybackRate !== 1}
+            slot="dropdown-trigger"
+            text={this.isSubtitleActive ? `${this.subLang?.toUpperCase()}` : null}
+          />
+          <calcite-dropdown-group selection-mode="single">
+            <calcite-dropdown-item
+              selected={this.currentPlaybackRate === 0.25}
+              icon-start="1-4x"
+              onClick={() => this.handlePlaybackRateUpdate(0.25)}
+              onKeyDown={() => this.handlePlaybackRateUpdate(0.25)}
+            >
+              Quarter
+            </calcite-dropdown-item>
+            <calcite-dropdown-item
+              selected={this.currentPlaybackRate === 0.5}
+              icon-start="1-2x"
+              onClick={() => this.handlePlaybackRateUpdate(0.5)}
+              onKeyDown={() => this.handlePlaybackRateUpdate(0.5)}
+            >
+              Half
+            </calcite-dropdown-item>
+            <calcite-dropdown-item
+              selected={this.currentPlaybackRate === 1}
+              icon-start="1x"
+              onClick={() => this.handlePlaybackRateUpdate(1)}
+              onKeyDown={() => this.handlePlaybackRateUpdate(1)}
+            >
+              Default
+            </calcite-dropdown-item>
+            <calcite-dropdown-item
+              selected={this.currentPlaybackRate === 2}
+              icon-start="2x"
+              onClick={() => this.handlePlaybackRateUpdate(2)}
+              onKeyDown={() => this.handlePlaybackRateUpdate(2)}
+            >
+              Double
+            </calcite-dropdown-item>
+          </calcite-dropdown-group>
+        </calcite-dropdown>
+      </div>
+    );
+
     return (
       <Host>
         <div
@@ -293,6 +351,7 @@ export class CalciteVideo {
                   : this.hasSubtitle
                   ? subtitleControlSingle
                   : null}
+                {!this.disablePlaybackRate ? playbackRateSelector : null}
                 {!this.disableFullscreen ? fullscreenControl : null}
               </div>
             </div>
@@ -405,6 +464,9 @@ export class CalciteVideo {
 
   /** the videos available subtitles */
   @State() availableSubtitles?: TextTrackList;
+
+  /** the videos available subtitles */
+  @State() currentPlaybackRate?: number = 1;
 
   /** the track of the current subtitle */
   @State() subTrack?: TextTrack;
@@ -591,6 +653,11 @@ export class CalciteVideo {
         (document as any).msExitFullscreen();
       }
     }
+  }
+
+  handlePlaybackRateUpdate(rate: number): any {
+    this.videoEl.playbackRate = rate;
+    this.currentPlaybackRate = rate;
   }
 
   formatTime(currentTime: number): any {

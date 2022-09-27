@@ -163,11 +163,16 @@ calcite-video .container[dir="rtl"] .calcite-video-control-item {
   border-left: 1px solid var(--calcite-ui-border-3);
 }
 
+.calcite-video-playback-rate-control-item {
+  border-right: 0;
+  border-left: 1px solid var(--calcite-ui-border-3);
+  order: 5;
+}
 .calcite-video-subtitle-control-item {
   border-right: 0;
   border-left: 1px solid var(--calcite-ui-border-3);
   order: 4;
-  &:nth-last-child(2) {
+  &:nth-last-child(3) {
     margin-left: auto;
   }
   & ~ .calcite-video-fullscreen-control-item {
@@ -178,7 +183,7 @@ calcite-video .container[dir="rtl"] {
   & .calcite-video-subtitle-control-item {
     border-left: 0;
     border-right: 1px solid var(--calcite-ui-border-3);
-    &:nth-last-child(2) {
+    &:nth-last-child(3) {
       margin-right: auto;
       margin-left: 0;
     }
@@ -192,7 +197,7 @@ calcite-video .container[dir="rtl"] {
   margin-left: auto;
   border-right: 0;
   border-left: 1px solid var(--calcite-ui-border-3);
-  order: 5;
+  order: 6;
 }
 
 calcite-video .container[dir="rtl"] .calcite-video-fullscreen-control-item {
