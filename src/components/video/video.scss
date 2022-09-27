@@ -6,22 +6,19 @@ calcite-video .container {
   display: flex;
   flex-direction: column;
   position: relative;
-  width: auto;
-  max-width: 100%;
+  inline-size: auto;
+  max-inline-size: 100%;
   background-color: var(--calcite-ui-foreground-1);
   & video {
-    max-height: 100%;
-    max-width: 100%;
+    max-block-size: 100%;
+    max-inline-size: 100%;
     cursor: pointer;
   }
 
   & calcite-loader {
     z-index: 999;
     position: absolute;
-    left: 0;
-    top: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     margin: auto;
   }
   // todo hide these
@@ -50,9 +47,8 @@ calcite-video[show-controls-on-hover] {
   & .calcite-video-footer {
     visibility: hidden;
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset-inline: 0;
+    inset-block-end: 0;
     opacity: 0;
     transition: all 0.15s ease-in-out;
     background-color: var(--calcite-ui-foreground-1);
@@ -76,14 +72,14 @@ calcite-video[show-controls-on-hover] .container:hover {
   justify-content: center;
   position: relative;
   box-sizing: border-box;
-  height: 100%;
+  block-size: 100%;
   border: 1px solid var(--calcite-ui-border-3);
   &.calcite-video-fullscreen {
-    height: 100%;
+    block-size: 100%;
     border-color: transparent;
     & video {
-      height: 100vh;
-      width: auto;
+      block-size: 100vh;
+      inline-size: auto;
     }
   }
 }
@@ -91,9 +87,9 @@ calcite-video[show-controls-on-hover] .container:hover {
 .calcite-video-footer {
   display: flex;
   flex-direction: column;
-  width: 100%;
+  inline-size: 100%;
   border: 1px solid var(--calcite-ui-border-3);
-  border-top: 0;
+  border-block-start: 0;
   box-sizing: border-box;
 }
 
@@ -104,8 +100,9 @@ calcite-video[show-controls-on-hover] .container:hover {
 
 .calcite-video-scrubber-wrapper {
   position: relative;
-  padding: 0 10px;
-  border-bottom: 1px solid var(--calcite-ui-border-3);
+  padding-block: 0;
+  padding-inline: 10px;
+  border-block-end: 1px solid var(--calcite-ui-border-3);
 }
 
 // custom subtitles
@@ -115,11 +112,11 @@ calcite-video[show-controls-on-hover] .container:hover {
   color: white;
   box-shadow: $shadow-2;
   position: absolute;
-  margin-left: 0;
-  margin-right: 0;
-  width: auto;
-  padding: 0.5em 0.75em;
-  bottom: 1em;
+  margin-inline: 0;
+  inline-size: auto;
+  padding-block: 0.5em;
+  padding-inline: 0.75em;
+  inset-block-end: 1em;
   z-index: 99;
   @include font-size(-2);
   display: none;
@@ -135,13 +132,13 @@ calcite-video[show-controls-on-hover] .container:hover {
 calcite-slider.calcite-video-scrubber {
   box-sizing: border-box;
   margin: 0;
-  width: 100%;
+  inline-size: 100%;
 }
 .calcite-video-control-item {
   display: flex;
   flex-direction: row;
   cursor: pointer;
-  border-right: 1px solid var(--calcite-ui-border-3);
+  border-inline-end: 1px solid var(--calcite-ui-border-3);
 
   &:hover,
   &:focus {
@@ -159,52 +156,50 @@ calcite-slider.calcite-video-scrubber {
 }
 
 calcite-video .container[dir="rtl"] .calcite-video-control-item {
-  border-right: 0;
-  border-left: 1px solid var(--calcite-ui-border-3);
+  border-inline-end: 0;
+  border-inline-start: 1px solid var(--calcite-ui-border-3);
 }
 
 .calcite-video-playback-rate-control-item {
-  border-right: 0;
-  border-left: 1px solid var(--calcite-ui-border-3);
+  border-inline-end: 0;
+  border-inline-start: 1px solid var(--calcite-ui-border-3);
   order: 5;
 }
 .calcite-video-subtitle-control-item {
-  border-right: 0;
-  border-left: 1px solid var(--calcite-ui-border-3);
+  border-inline-end: 0;
+  border-inline-start: 1px solid var(--calcite-ui-border-3);
   order: 4;
   &:nth-last-child(3) {
-    margin-left: auto;
+    margin-inline-start: auto;
   }
   & ~ .calcite-video-fullscreen-control-item {
-    margin-left: 0;
+    margin-inline-start: 0;
   }
 }
 calcite-video .container[dir="rtl"] {
   & .calcite-video-subtitle-control-item {
-    border-left: 0;
-    border-right: 1px solid var(--calcite-ui-border-3);
+    border-inline-start: 0;
+    border-inline-end: 1px solid var(--calcite-ui-border-3);
     &:nth-last-child(3) {
-      margin-right: auto;
-      margin-left: 0;
+      margin-inline: 0 auto;
     }
     & ~ .calcite-video-fullscreen-control-item {
-      margin-right: 0;
+      margin-inline-end: 0;
     }
   }
 }
 
 .calcite-video-fullscreen-control-item {
-  margin-left: auto;
-  border-right: 0;
-  border-left: 1px solid var(--calcite-ui-border-3);
+  margin-inline-start: auto;
+  border-inline-end: 0;
+  border-inline-start: 1px solid var(--calcite-ui-border-3);
   order: 6;
 }
 
 calcite-video .container[dir="rtl"] .calcite-video-fullscreen-control-item {
-  margin-right: auto;
-  margin-left: 0;
-  border-left: 0;
-  border-right: 1px solid var(--calcite-ui-border-3);
+  margin-inline: 0 auto;
+  border-inline-start: 0;
+  border-inline-end: 1px solid var(--calcite-ui-border-3);
 }
 
 .calcite-video-volume-control-item {
@@ -214,7 +209,8 @@ calcite-video .container[dir="rtl"] .calcite-video-fullscreen-control-item {
 .calcite-video-time {
   align-self: center;
   font-size: 12px;
-  padding: 8px 12px;
+  padding-block: 8px;
+  padding-inline: 12px;
   order: 3;
   color: var(--calcite-ui-text-1);
   & span:first-child {
@@ -222,7 +218,7 @@ calcite-video .container[dir="rtl"] .calcite-video-fullscreen-control-item {
   }
 }
 .calcite-video-control-item.calcite-video-volume-control-item calcite-slider {
-  width: 0;
+  inline-size: 0;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -234,9 +230,8 @@ calcite-video .container[dir="rtl"] .calcite-video-fullscreen-control-item {
 .calcite-video-control-item.calcite-video-volume-control-item calcite-slider:focus,
 .calcite-video-control-item.calcite-video-volume-control-item calcite-slider:focus-within,
 .calcite-video-control-item.calcite-video-volume-control-item:hover calcite-slider {
-  width: 60px;
-  margin-left: 20px;
-  margin-right: 20px;
+  inline-size: 60px;
+  margin-inline: 20px;
   opacity: 1;
   pointer-events: initial;
   visibility: visible;

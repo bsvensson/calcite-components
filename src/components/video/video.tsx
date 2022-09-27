@@ -274,34 +274,34 @@ export class CalciteVideo {
           />
           <calcite-dropdown-group selection-mode="single">
             <calcite-dropdown-item
-              selected={this.currentPlaybackRate === 0.25}
               icon-start="1-4x"
               onClick={() => this.handlePlaybackRateUpdate(0.25)}
               onKeyDown={() => this.handlePlaybackRateUpdate(0.25)}
+              selected={this.currentPlaybackRate === 0.25}
             >
               Quarter
             </calcite-dropdown-item>
             <calcite-dropdown-item
-              selected={this.currentPlaybackRate === 0.5}
               icon-start="1-2x"
               onClick={() => this.handlePlaybackRateUpdate(0.5)}
               onKeyDown={() => this.handlePlaybackRateUpdate(0.5)}
+              selected={this.currentPlaybackRate === 0.5}
             >
               Half
             </calcite-dropdown-item>
             <calcite-dropdown-item
-              selected={this.currentPlaybackRate === 1}
               icon-start="1x"
               onClick={() => this.handlePlaybackRateUpdate(1)}
               onKeyDown={() => this.handlePlaybackRateUpdate(1)}
+              selected={this.currentPlaybackRate === 1}
             >
               Default
             </calcite-dropdown-item>
             <calcite-dropdown-item
-              selected={this.currentPlaybackRate === 2}
               icon-start="2x"
               onClick={() => this.handlePlaybackRateUpdate(2)}
               onKeyDown={() => this.handlePlaybackRateUpdate(2)}
+              selected={this.currentPlaybackRate === 2}
             >
               Double
             </calcite-dropdown-item>
