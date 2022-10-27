@@ -118,6 +118,16 @@ export class Alert implements OpenCloseComponent, LocalizedComponent {
    */
   @Prop({ reflect: true }) numberingSystem?: NumberingSystem;
 
+  @Watch("numberingSystem")
+  numberingSystemWatcher(numberingSystem: NumberingSystem): void {
+    this.formatter.numberFormatOptions = {
+      useGrouping: false,
+      signDisplay: "always",
+      locale: this.effectiveLocale,
+      numberingSystem
+    };
+  }
+
   /** Specifies the placement of the component */
   @Prop({ reflect: true }) placement: AlertPlacement = "bottom";
 
@@ -160,6 +170,13 @@ export class Alert implements OpenCloseComponent, LocalizedComponent {
 
   componentWillLoad(): void {
     this.requestedIcon = setRequestedIcon(StatusIcons, this.icon, this.color);
+
+    this.formatter.numberFormatOptions = {
+      useGrouping: false,
+      signDisplay: "always",
+      numberingSystem: this.numberingSystem,
+      locale: this.effectiveLocale
+    };
   }
 
   disconnectedCallback(): void {
@@ -180,12 +197,6 @@ export class Alert implements OpenCloseComponent, LocalizedComponent {
         <calcite-icon icon="x" scale={this.scale === "l" ? "m" : "s"} />
       </button>
     );
-
-    this.formatter.numberFormatOptions = {
-      locale: this.effectiveLocale,
-      numberingSystem: this.numberingSystem,
-      signDisplay: "always"
-    };
 
     const queueNumber = this.queueLength > 2 ? this.queueLength - 1 : 1;
     const queueText = this.formatter.numberFormatter.format(queueNumber);
@@ -316,6 +327,16 @@ export class Alert implements OpenCloseComponent, LocalizedComponent {
   @State() formatter = new NumberStringFormat();
 
   @State() effectiveLocale = "";
+
+  @Watch("effectiveLocale")
+  effectiveLocaleWatcher(locale: string): void {
+    this.formatter.numberFormatOptions = {
+      useGrouping: false,
+      signDisplay: "always",
+      numberingSystem: this.numberingSystem,
+      locale
+    };
+  }
 
   /** the list of queued alerts */
   @State() queue: HTMLCalciteAlertElement[] = [];
