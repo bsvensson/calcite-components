@@ -7,22 +7,29 @@ import {
   EventEmitter,
   Listen,
   h,
-  VNode
+  VNode,
+  State,
+  Watch
 } from "@stencil/core";
 
-import { getElementDir } from "../../utils/dom";
+import { closestElementCrossShadowBoundary, getElementDir } from "../../utils/dom";
 import { Scale } from "../interfaces";
 import { CSS_UTILITY } from "../../utils/resources";
 import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 import { isActivationKey } from "../../utils/key";
-import { numberStringFormatter } from "../../utils/locale";
+import {
+  NumberStringFormat,
+  LocalizedComponent,
+  connectLocalized,
+  disconnectLocalized
+} from "../../utils/locale";
 
 @Component({
   tag: "calcite-date-picker-day",
   styleUrl: "date-picker-day.scss",
   shadow: true
 })
-export class DatePickerDay implements InteractiveComponent {
+export class DatePickerDay implements InteractiveComponent, LocalizedComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -118,8 +125,30 @@ export class DatePickerDay implements InteractiveComponent {
   //  Lifecycle
   //
   //--------------------------------------------------------------------------
+
+  connectedCallback(): void {
+    connectLocalized(this);
+  }
+
+  componentWillLoad(): void {
+    this.parentDatePickerEl = closestElementCrossShadowBoundary(
+      this.el,
+      "calcite-date-picker"
+    ) as HTMLCalciteDatePickerElement;
+
+    this.formatter.numberFormatOptions = {
+      useGrouping: false,
+      numberingSystem: this.parentDatePickerEl?.numberingSystem,
+      locale: this.effectiveLocale
+    };
+  }
+
+  disconnectedCallback(): void {
+    disconnectLocalized(this);
+  }
+
   render(): VNode {
-    const formattedDay = numberStringFormatter.localize(String(this.day));
+    const formattedDay = this.formatter.localize(String(this.day));
     const dir = getElementDir(this.el);
     return (
       <Host onClick={this.onClick} onKeyDown={this.keyDownHandler} role="gridcell">
@@ -136,6 +165,27 @@ export class DatePickerDay implements InteractiveComponent {
 
   componentDidRender(): void {
     updateHostInteraction(this, this.isTabbable);
+  }
+
+  //--------------------------------------------------------------------------
+  //
+  //  Private State/Props
+  //
+  //--------------------------------------------------------------------------
+
+  private parentDatePickerEl: HTMLCalciteDatePickerElement;
+
+  @State() formatter = new NumberStringFormat();
+
+  @State() effectiveLocale = "";
+
+  @Watch("effectiveLocale")
+  effectiveLocaleWatcher(locale: string): void {
+    this.formatter.numberFormatOptions = {
+      useGrouping: false,
+      numberingSystem: this.parentDatePickerEl?.numberingSystem,
+      locale
+    };
   }
 
   isTabbable(): boolean {

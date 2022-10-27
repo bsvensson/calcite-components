@@ -1,5 +1,5 @@
 import { DateLocaleData } from "../components/date-picker/utils";
-import { numberStringFormatter } from "./locale";
+import { NumberStringFormat } from "./locale";
 
 export interface HoverRange {
   focused: "end" | "start";
@@ -140,11 +140,16 @@ export function nextMonth(date: Date): Date {
  *
  * @param str
  * @param localeData
+ * @param formatter
  */
-export function parseDateString(str: string, localeData: DateLocaleData): { day: number; month: number; year: number } {
+export function parseDateString(
+  str: string,
+  localeData: DateLocaleData,
+  formatter: NumberStringFormat
+): { day: number; month: number; year: number } {
   const { separator, unitOrder } = localeData;
   const order = getOrder(unitOrder);
-  const values = str.split(separator).map((part) => numberStringFormatter.delocalize(part));
+  const values = str.split(separator).map((part) => formatter.delocalize(part));
   return {
     day: parseInt(values[order.indexOf("d")]),
     month: parseInt(values[order.indexOf("m")]) - 1,

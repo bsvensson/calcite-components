@@ -61,7 +61,7 @@ import {
   disconnectLocalized,
   LocalizedComponent,
   NumberingSystem,
-  numberStringFormatter
+  NumberStringFormat
 } from "../../utils/locale";
 import { numberKeys } from "../../utils/key";
 
@@ -459,15 +459,14 @@ export class InputDatePicker
 
     this.setFilteredPlacements();
     this.reposition(true);
-
-    numberStringFormatter.numberFormatOptions = {
-      numberingSystem: this.numberingSystem,
-      locale: this.effectiveLocale,
-      useGrouping: false
-    };
   }
 
   async componentWillLoad(): Promise<void> {
+    this.formatter.numberFormatOptions = {
+      useGrouping: false,
+      numberingSystem: this.numberingSystem,
+      locale: this.effectiveLocale
+    };
     await this.loadLocaleData();
     this.onMinChanged(this.min);
     this.onMaxChanged(this.max);
@@ -633,6 +632,8 @@ export class InputDatePicker
 
   defaultValue: InputDatePicker["value"];
 
+  @State() formatter = new NumberStringFormat();
+
   @State() effectiveLocale = "";
 
   @State() focusedInput: "start" | "end" = "start";
@@ -797,6 +798,11 @@ export class InputDatePicker
 
   @Watch("effectiveLocale")
   private async loadLocaleData(): Promise<void> {
+    this.formatter.numberFormatOptions = {
+      useGrouping: false,
+      numberingSystem: this.numberingSystem,
+      locale: this.effectiveLocale
+    };
     if (!Build.isBrowser) {
       return;
     }
@@ -962,7 +968,7 @@ export class InputDatePicker
       return false;
     }
     const { separator } = this.localeData;
-    const { day, month, year } = parseDateString(value, this.localeData);
+    const { day, month, year } = parseDateString(value, this.localeData, this.formatter);
     const validDay = day > 0;
     const validMonth = month > -1;
     const date = new Date(year, month, day);
@@ -994,7 +1000,7 @@ export class InputDatePicker
             this.commonDateSeparators.includes(char)
               ? this.localeData.separator
               : numberKeys.includes(char)
-              ? numberStringFormatter.numberFormatter.format(Number(char))
+              ? this.formatter.numberFormatter.format(Number(char))
               : char
           )
           .join("")
@@ -1005,7 +1011,7 @@ export class InputDatePicker
       ? value
           .split("")
           .map((char: string) =>
-            numberKeys.includes(char) ? numberStringFormatter.delocalize(char) : char
+            numberKeys.includes(char) ? this.formatter.delocalize(char) : char
           )
           .join("")
       : "";

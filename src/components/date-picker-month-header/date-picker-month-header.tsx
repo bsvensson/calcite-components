@@ -17,14 +17,20 @@ import { Scale } from "../interfaces";
 import { HeadingLevel, Heading } from "../functional/Heading";
 import { BUDDHIST_CALENDAR_YEAR_OFFSET } from "./resources";
 import { isActivationKey } from "../../utils/key";
-import { numberStringFormatter } from "../../utils/locale";
+import {
+  NumberStringFormat,
+  LocalizedComponent,
+  connectLocalized,
+  disconnectLocalized
+} from "../../utils/locale";
+import { closestElementCrossShadowBoundary } from "../../utils/dom";
 
 @Component({
   tag: "calcite-date-picker-month-header",
   styleUrl: "date-picker-month-header.scss",
   shadow: true
 })
-export class DatePickerMonthHeader {
+export class DatePickerMonthHeader implements LocalizedComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -88,7 +94,25 @@ export class DatePickerMonthHeader {
   //--------------------------------------------------------------------------
 
   connectedCallback(): void {
+    connectLocalized(this);
     this.setNextPrevMonthDates();
+  }
+
+  componentWillLoad(): void {
+    this.parentDatePickerEl = closestElementCrossShadowBoundary(
+      this.el,
+      "calcite-date-picker"
+    ) as HTMLCalciteDatePickerElement;
+
+    this.formatter.numberFormatOptions = {
+      useGrouping: false,
+      numberingSystem: this.parentDatePickerEl?.numberingSystem,
+      locale: this.effectiveLocale
+    };
+  }
+
+  disconnectedCallback(): void {
+    disconnectLocalized(this);
   }
 
   render(): VNode {
@@ -170,9 +194,22 @@ export class DatePickerMonthHeader {
   //
   //--------------------------------------------------------------------------
 
-  @State() globalAttributes = {};
+  @State() formatter = new NumberStringFormat();
+
+  @State() effectiveLocale = "";
+
+  @Watch("effectiveLocale")
+  effectiveLocaleWatcher(locale: string): void {
+    this.formatter.numberFormatOptions = {
+      useGrouping: false,
+      numberingSystem: this.parentDatePickerEl?.numberingSystem,
+      locale
+    };
+  }
 
   private yearInput: HTMLInputElement;
+
+  private parentDatePickerEl: HTMLCalciteDatePickerElement;
 
   @State() nextMonthDate: Date;
 
@@ -219,7 +256,7 @@ export class DatePickerMonthHeader {
     const buddhistCalendar = localeData["default-calendar"] === "buddhist";
     const yearOffset = buddhistCalendar ? BUDDHIST_CALENDAR_YEAR_OFFSET : 0;
 
-    return numberStringFormatter.localize(`${year + yearOffset}`);
+    return this.formatter.localize(`${year + yearOffset}`);
   }
 
   private parseCalendarYear(year: string): string {
@@ -227,8 +264,8 @@ export class DatePickerMonthHeader {
     const buddhistCalendar = localeData["default-calendar"] === "buddhist";
     const yearOffset = buddhistCalendar ? BUDDHIST_CALENDAR_YEAR_OFFSET : 0;
 
-    const parsedYear = Number(numberStringFormatter.delocalize(year)) - yearOffset;
-    return numberStringFormatter.localize(`${parsedYear}`);
+    const parsedYear = Number(this.formatter.delocalize(year)) - yearOffset;
+    return this.formatter.localize(`${parsedYear}`);
   }
 
   private onYearChange = (event: Event): void => {
@@ -280,7 +317,7 @@ export class DatePickerMonthHeader {
     offset?: number;
   }): Date {
     const { min, max, activeDate } = this;
-    const parsedYear = Number(numberStringFormatter.delocalize(localizedYear));
+    const parsedYear = Number(this.formatter.delocalize(localizedYear));
     const length = parsedYear.toString().length;
     const year = isNaN(parsedYear) ? false : parsedYear + offset;
     const inRange =
