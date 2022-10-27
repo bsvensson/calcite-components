@@ -26,7 +26,7 @@ import {
   connectLocalized,
   disconnectLocalized,
   NumberingSystem,
-  numberStringFormatter
+  NumberStringFormat
 } from "../../utils/locale";
 
 /**
@@ -181,14 +181,14 @@ export class Alert implements OpenCloseComponent, LocalizedComponent {
       </button>
     );
 
-    numberStringFormatter.numberFormatOptions = {
+    this.formatter.numberFormatOptions = {
       locale: this.effectiveLocale,
       numberingSystem: this.numberingSystem,
       signDisplay: "always"
     };
 
     const queueNumber = this.queueLength > 2 ? this.queueLength - 1 : 1;
-    const queueText = numberStringFormatter.numberFormatter.format(queueNumber);
+    const queueText = this.formatter.numberFormatter.format(queueNumber);
 
     const queueCount = (
       <div class={`${this.queueLength > 1 ? "active " : ""}alert-queue-count`}>
@@ -313,6 +313,7 @@ export class Alert implements OpenCloseComponent, LocalizedComponent {
   //  Private State/Props
   //
   //--------------------------------------------------------------------------
+  @State() formatter = new NumberStringFormat();
 
   @State() effectiveLocale = "";
 
