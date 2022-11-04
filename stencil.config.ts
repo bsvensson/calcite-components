@@ -2,14 +2,13 @@ import { Config } from "@stencil/core";
 import { postcss } from "@stencil/postcss";
 import { sass } from "@stencil/sass";
 import autoprefixer from "autoprefixer";
-import tailwindcss from "tailwindcss";
+import tailwindcss, { Config as TailwindConfig } from "tailwindcss";
 import tailwindConfig from "./tailwind.config";
 import { generatePreactTypes } from "./support/preact";
 import stylelint from "stylelint";
 import { version } from "./package.json";
 
 export const create: () => Config = () => ({
-  buildEs5: "prod",
   namespace: "calcite",
   bundles: [
     { components: ["calcite-accordion", "calcite-accordion-item"] },
@@ -78,7 +77,6 @@ export const create: () => Config = () => ({
   ],
   outputTargets: [
     { type: "dist-hydrate-script" },
-    { type: "dist-custom-elements-bundle" },
     { type: "dist-custom-elements", autoDefineCustomElements: true },
     { type: "dist" },
     { type: "docs-readme" },
@@ -105,7 +103,7 @@ export const create: () => Config = () => ({
     }),
     postcss({
       plugins: [
-        tailwindcss(tailwindConfig),
+        tailwindcss(tailwindConfig as any as TailwindConfig),
         autoprefixer(),
         stylelint({
           configFile: ".stylelintrc-postcss.json",
@@ -116,7 +114,8 @@ export const create: () => Config = () => ({
   ],
   testing: {
     moduleNameMapper: {
-      "^/assets/(.*)$": "<rootDir>/src/tests/iconPathDataStub.ts"
+      "^/assets/(.*)$": "<rootDir>/src/tests/iconPathDataStub.ts",
+      "^lodash-es$": "lodash"
     },
     setupFilesAfterEnv: ["<rootDir>/src/tests/setupTests.ts"]
   },

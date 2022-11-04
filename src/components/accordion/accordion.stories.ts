@@ -3,9 +3,9 @@ import {
   Attributes,
   filterComponentAttributes,
   createComponentHTML as create,
-  themesDarkDefault,
-  placeholderImage
+  themesDarkDefault
 } from "../../../.storybook/utils";
+import { placeholderImage } from "../../../.storybook/placeholderImage";
 import { ATTRIBUTES } from "../../../.storybook/resources";
 import { iconNames, storyFilters } from "../../../.storybook/helpers";
 import { select, text } from "@storybook/addon-knobs";
@@ -56,7 +56,7 @@ const createAccordionAttributes: (options?: { exceptions: string[] }) => Attribu
       {
         name: "selection-mode",
         commit(): Attribute {
-          this.value = select("selection-mode", ["multi", "single", "single-persist"], "multi", group);
+          this.value = select("selection-mode", ["multi", "single", "single-persist", "multiple"], "multiple", group);
           delete this.build;
           return this;
         }
