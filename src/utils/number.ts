@@ -1,5 +1,5 @@
 import { numberKeys } from "./key";
-import { numberStringFormatter } from "./locale";
+import { NumberStringFormat } from "./locale";
 
 // adopted from https://stackoverflow.com/a/66939244
 export class BigDecimal {
@@ -49,7 +49,7 @@ export class BigDecimal {
     return `${this.isNegative ? "-" : ""}${value}`;
   }
 
-  formatToParts(formatter: Intl.NumberFormat): Intl.NumberFormatPart[] {
+  formatToParts(formatter: NumberStringFormat): Intl.NumberFormatPart[] {
     const s = this.value
       .toString()
       .replace(new RegExp("-", "g"), "")
@@ -58,18 +58,18 @@ export class BigDecimal {
     const i = s.slice(0, -BigDecimal.DECIMALS);
     const d = s.slice(-BigDecimal.DECIMALS).replace(/\.?0+$/, "");
 
-    const parts = formatter.formatToParts(BigInt(i));
-    this.isNegative && parts.unshift({ type: "minusSign", value: numberStringFormatter.minusSign });
+    const parts = formatter.numberFormatter.formatToParts(BigInt(i));
+    this.isNegative && parts.unshift({ type: "minusSign", value: formatter.minusSign });
 
     if (d.length) {
-      parts.push({ type: "decimal", value: numberStringFormatter.decimal });
+      parts.push({ type: "decimal", value: formatter.decimal });
       d.split("").forEach((char: string) => parts.push({ type: "fraction", value: char }));
     }
 
     return parts;
   }
 
-  format(formatter: Intl.NumberFormat): string {
+  format(formatter: NumberStringFormat): string {
     const s = this.value
       .toString()
       .replace(new RegExp("-", "g"), "")
@@ -78,8 +78,13 @@ export class BigDecimal {
     const i = s.slice(0, -BigDecimal.DECIMALS);
     const d = s.slice(-BigDecimal.DECIMALS).replace(/\.?0+$/, "");
 
-    const iFormatted = `${this.isNegative ? numberStringFormatter.minusSign : ""}${formatter.format(BigInt(i))}`;
-    const dFormatted = d.length ? `${numberStringFormatter.decimal}${formatter.format(BigInt(d))}` : "";
+    const iFormatted = `${this.isNegative ? formatter.minusSign : ""}${formatter.numberFormatter.format(BigInt(i))}`;
+    const dFormatted = d.length
+      ? `${formatter.decimal}${d
+          .split("")
+          .map((char: string) => formatter.numberFormatter.format(Number(char)))
+          .join("")}`
+      : "";
     return `${iFormatted}${dFormatted}`;
   }
 
