@@ -50,6 +50,13 @@ import {
   connectOpenCloseComponent,
   disconnectOpenCloseComponent
 } from "../../utils/openCloseComponent";
+import {
+  setUpLoadableComponent,
+  setComponentLoaded,
+  LoadableComponent,
+  componentLoaded
+} from "../../utils/loadable";
+
 interface ItemData {
   label: string;
   value: string;
@@ -78,7 +85,8 @@ export class Combobox
     FormComponent,
     InteractiveComponent,
     OpenCloseComponent,
-    FloatingUIComponent
+    FloatingUIComponent,
+    LoadableComponent
 {
   //--------------------------------------------------------------------------
   //
@@ -144,10 +152,10 @@ export class Combobox
   @Prop() label!: string;
 
   /** Specifies the placeholder text for the input. */
-  @Prop() placeholder?: string;
+  @Prop() placeholder: string;
 
   /** Specifies the placeholder icon for the input. */
-  @Prop({ reflect: true }) placeholderIcon?: string;
+  @Prop({ reflect: true }) placeholderIcon: string;
 
   /** Specifies the maximum number of `calcite-combobox-item`s (including nested children) to display before displaying a scrollbar. */
   @Prop({ reflect: true }) maxItems = 0;
@@ -224,7 +232,7 @@ export class Combobox
   /**
    * Defines the available placements that can be used when a flip occurs.
    */
-  @Prop() flipPlacements?: EffectivePlacement[];
+  @Prop() flipPlacements: EffectivePlacement[];
 
   @Watch("flipPlacements")
   flipPlacementsHandler(): void {
@@ -291,6 +299,8 @@ export class Combobox
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
+    await componentLoaded(this);
+
     this.textInput?.focus();
     this.activeChipIndex = -1;
     this.activeItemIndex = -1;
@@ -366,12 +376,14 @@ export class Combobox
   }
 
   componentWillLoad(): void {
+    setUpLoadableComponent(this);
     this.updateItems();
   }
 
   componentDidLoad(): void {
     afterConnectDefaultValueSet(this, this.getValue());
     this.reposition(true);
+    setComponentLoaded(this);
   }
 
   componentDidRender(): void {
@@ -695,7 +707,6 @@ export class Combobox
   setContainerEl = (el: HTMLDivElement): void => {
     this.resizeObserver.observe(el);
     this.listContainerEl = el;
-
     this.transitionEl = el;
     connectOpenCloseComponent(this);
   };
@@ -1024,7 +1035,6 @@ export class Combobox
     this.activeDescendant = activeDescendant;
     if (this.activeItemIndex > -1) {
       this.activeChipIndex = -1;
-      this.textInput?.focus();
     }
   }
 
@@ -1059,8 +1069,8 @@ export class Combobox
       return (
         <calcite-chip
           class={chipClasses}
+          closable
           dismissLabel={intlRemoveTag}
-          dismissible
           icon={item.icon}
           id={item.guid ? `${chipUidPrefix}${item.guid}` : null}
           key={item.textLabel}
@@ -1201,7 +1211,7 @@ export class Combobox
     const single = this.selectionMode === "single";
 
     return (
-      <Host>
+      <Host onClick={this.comboboxFocusHandler}>
         <div
           aria-autocomplete="list"
           aria-controls={`${listboxUidPrefix}${guid}`}

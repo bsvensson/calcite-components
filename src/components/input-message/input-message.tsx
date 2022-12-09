@@ -26,7 +26,12 @@ export class InputMessage {
   //
   //--------------------------------------------------------------------------
 
-  /** When `true`, the component is active. */
+  /**
+   * When `true`, the component is active.
+   *
+   * @deprecated use global `hidden` attribute instead.
+   * @mdn [hidden](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/hidden)
+   */
   @Prop({ reflect: true }) active = false;
 
   /** Specifies an icon to display. */
@@ -58,7 +63,6 @@ export class InputMessage {
   //--------------------------------------------------------------------------
 
   connectedCallback(): void {
-    this.status = getElementProp(this.el, "status", this.status);
     this.scale = getElementProp(this.el, "scale", this.scale);
     this.requestedIcon = setRequestedIcon(StatusIconDefaults, this.icon, this.status);
   }

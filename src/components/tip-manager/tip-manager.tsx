@@ -10,7 +10,7 @@ import {
   h,
   VNode
 } from "@stencil/core";
-import { CSS, ICONS, TEXT, HEADING_LEVEL } from "./resources";
+import { CSS, ICONS, TEXT } from "./resources";
 import { getElementDir, toAriaBoolean } from "../../utils/dom";
 import { HeadingLevel, Heading } from "../functional/Heading";
 import { createObserver } from "../../utils/observers";
@@ -37,7 +37,6 @@ export class TipManager {
   @Watch("closed")
   closedChangeHandler(): void {
     this.direction = null;
-    this.calciteTipManagerToggle.emit();
   }
 
   /**
@@ -48,27 +47,27 @@ export class TipManager {
   /**
    * Accessible name for the component's close button.
    */
-  @Prop() intlClose?: string;
+  @Prop() intlClose: string;
 
   /**
    * Accessible name for the `calcite-tip-group` title.
    */
-  @Prop() intlDefaultTitle?: string;
+  @Prop() intlDefaultTitle: string;
 
   /**
    * Accessible name for navigating to the next tip.
    */
-  @Prop() intlNext?: string;
+  @Prop() intlNext: string;
 
   /**
    * Text that accompanies the component's pagination.
    */
-  @Prop() intlPaginationLabel?: string;
+  @Prop() intlPaginationLabel: string;
 
   /**
    * Accessible name for navigating to the previous tip.
    */
-  @Prop() intlPrevious?: string;
+  @Prop() intlPrevious: string;
 
   // --------------------------------------------------------------------------
   //
@@ -142,13 +141,6 @@ export class TipManager {
   // --------------------------------------------------------------------------
 
   /**
-   * Emits when the component has been open or closed.
-   *
-   * @deprecated use `calciteTipManagerClose` instead.
-   */
-  @Event({ cancelable: false }) calciteTipManagerToggle: EventEmitter<void>;
-
-  /**
    * Emits when the component has been closed.
    */
   @Event({ cancelable: false }) calciteTipManagerClose: EventEmitter<void>;
@@ -179,7 +171,6 @@ export class TipManager {
 
   hideTipManager = (): void => {
     this.closed = true;
-    this.calciteTipManagerToggle.emit();
     this.calciteTipManagerClose.emit();
   };
 
@@ -288,7 +279,7 @@ export class TipManager {
         tabIndex={0}
       >
         <header class={CSS.header}>
-          <Heading class={CSS.heading} level={headingLevel || HEADING_LEVEL}>
+          <Heading class={CSS.heading} level={headingLevel}>
             {groupTitle}
           </Heading>
           <calcite-action

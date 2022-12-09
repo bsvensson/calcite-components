@@ -95,15 +95,14 @@ describe("calcite-input-number", () => {
   it("inherits requested props when from wrapping calcite-label when props are provided", async () => {
     const page = await newE2EPage();
     await page.setContent(html`
-      <calcite-label status="invalid" scale="s">
+      <calcite-label scale="s">
         Label text
         <calcite-input-number></calcite-input-number>
       </calcite-label>
     `);
 
-    const deprecatedLabelStatusElement = await page.find("calcite-input-number");
-    expect(await deprecatedLabelStatusElement.getProperty("status")).toEqual("invalid");
-    expect(await deprecatedLabelStatusElement.getProperty("scale")).toEqual("s");
+    const inputNumberElement = await page.find("calcite-input-number");
+    expect(await inputNumberElement.getProperty("scale")).toEqual("s");
   });
 
   it("renders an icon when explicit Calcite UI is requested, and is a type without a default icon", async () => {
@@ -522,7 +521,7 @@ describe("calcite-input-number", () => {
       expect(await input.getProperty("value")).toBe(`${finalNudgedValue}`);
     });
 
-    it("when both 'ArrowUp' and 'ArrowDown' are pressed at the same time most recently pressed key takes over", async () => {
+    it.skip("when both 'ArrowUp' and 'ArrowDown' are pressed at the same time most recently pressed key takes over", async () => {
       await page.setContent(html`<calcite-input-number value="0"></calcite-input-number>`);
       const element = await page.find("calcite-input-number");
       await element.callMethod("setFocus");
@@ -1224,6 +1223,13 @@ describe("calcite-input-number", () => {
     for (const button of buttons) {
       expect(await button.getProperty("disabled")).toBe(true);
     }
+  });
+
+  it("sets internals to autocomplete when the attribute is used", async () => {
+    const page = await newE2EPage();
+    await page.setContent(html`<calcite-input-number autocomplete="cc-number"></calcite-input-number>`);
+    const input = await page.find("calcite-input-number >>> input");
+    expect(await input.getProperty("autocomplete")).toBe("cc-number");
   });
 
   it("input event fires when number ends with a decimal", async () => {

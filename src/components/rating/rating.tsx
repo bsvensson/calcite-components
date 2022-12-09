@@ -18,13 +18,21 @@ import { connectForm, disconnectForm, FormComponent, HiddenFormInputSlot } from 
 import { TEXT } from "./resources";
 import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 import { isActivationKey } from "../../utils/key";
+import {
+  setUpLoadableComponent,
+  setComponentLoaded,
+  LoadableComponent,
+  componentLoaded
+} from "../../utils/loadable";
 
 @Component({
   tag: "calcite-rating",
   styleUrl: "rating.scss",
   shadow: true
 })
-export class Rating implements LabelableComponent, FormComponent, InteractiveComponent {
+export class Rating
+  implements LabelableComponent, FormComponent, InteractiveComponent, LoadableComponent
+{
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -55,10 +63,10 @@ export class Rating implements LabelableComponent, FormComponent, InteractiveCom
   @Prop({ reflect: true }) showChip = false;
 
   /** Specifies the number of previous ratings to display. */
-  @Prop({ reflect: true }) count?: number;
+  @Prop({ reflect: true }) count: number;
 
   /** Specifies a cumulative average from previous ratings to display. */
-  @Prop({ reflect: true }) average?: number;
+  @Prop({ reflect: true }) average: number;
 
   /** Specifies the name of the component on form submission. */
   @Prop({ reflect: true }) name: string;
@@ -68,14 +76,14 @@ export class Rating implements LabelableComponent, FormComponent, InteractiveCom
    *
    * @default "Rating"
    */
-  @Prop() intlRating?: string = TEXT.rating;
+  @Prop() intlRating: string = TEXT.rating;
 
   /**
    * Accessible name for each star. The `${num}` in the string will be replaced by the number.
    *
    * @default "Stars: ${num}"
    */
-  @Prop() intlStars?: string = TEXT.stars;
+  @Prop() intlStars: string = TEXT.stars;
 
   /**
    * When `true`, the component must have a value in order for the form to submit.
@@ -93,6 +101,14 @@ export class Rating implements LabelableComponent, FormComponent, InteractiveCom
   connectedCallback(): void {
     connectLabel(this);
     connectForm(this);
+  }
+
+  componentWillLoad(): void {
+    setUpLoadableComponent(this);
+  }
+
+  componentDidLoad(): void {
+    setComponentLoaded(this);
   }
 
   disconnectedCallback(): void {
@@ -252,6 +268,8 @@ export class Rating implements LabelableComponent, FormComponent, InteractiveCom
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
+    await componentLoaded(this);
+
     this.inputFocusRef?.focus();
   }
 

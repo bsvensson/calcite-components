@@ -8,6 +8,12 @@ import { LabelableComponent, connectLabel, disconnectLabel, getLabelText } from 
 import { createObserver } from "../../utils/observers";
 import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 import { submitForm, resetForm, FormOwner } from "../../utils/form";
+import {
+  setUpLoadableComponent,
+  setComponentLoaded,
+  LoadableComponent,
+  componentLoaded
+} from "../../utils/loadable";
 
 /** Passing a 'href' will render an anchor link, instead of a button. Role will be set to link, or button, depending on this. */
 /** It is the consumers responsibility to add aria information, rel, target, for links, and any button attributes for form submission */
@@ -18,7 +24,9 @@ import { submitForm, resetForm, FormOwner } from "../../utils/form";
   styleUrl: "button.scss",
   shadow: true
 })
-export class Button implements LabelableComponent, InteractiveComponent, FormOwner {
+export class Button
+  implements LabelableComponent, InteractiveComponent, FormOwner, LoadableComponent
+{
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -34,13 +42,13 @@ export class Button implements LabelableComponent, InteractiveComponent, FormOwn
   //--------------------------------------------------------------------------
 
   /** Specifies the alignment of the component's elements. */
-  @Prop({ reflect: true }) alignment?: ButtonAlignment = "center";
+  @Prop({ reflect: true }) alignment: ButtonAlignment = "center";
 
   /** Specifies the appearance style of the component. */
   @Prop({ reflect: true }) appearance: ButtonAppearance = "solid";
 
   /** Accessible name for the component. */
-  @Prop() label?: string;
+  @Prop() label: string;
 
   /** Specifies the color of the component. */
   @Prop({ reflect: true }) color: ButtonColor = "blue";
@@ -51,23 +59,23 @@ export class Button implements LabelableComponent, InteractiveComponent, FormOwn
   /**
    * Specifies the URL of the linked resource, which can be set as an absolute or relative path.
    */
-  @Prop({ reflect: true }) href?: string;
+  @Prop({ reflect: true }) href: string;
 
   /** Specifies an icon to display at the end of the component. */
-  @Prop({ reflect: true }) iconEnd?: string;
+  @Prop({ reflect: true }) iconEnd: string;
 
   /** When `true`, the icon will be flipped when the element direction is right-to-left (`"rtl"`). */
-  @Prop({ reflect: true }) iconFlipRtl?: FlipContext;
+  @Prop({ reflect: true }) iconFlipRtl: FlipContext;
 
   /** Specifies an icon to display at the start of the component. */
-  @Prop({ reflect: true }) iconStart?: string;
+  @Prop({ reflect: true }) iconStart: string;
 
   /**
    * Accessible name when the component is loading.
    *
    * @default "Loading"
    */
-  @Prop() intlLoading?: string = TEXT.loading;
+  @Prop() intlLoading: string = TEXT.loading;
 
   /**
    * When `true`, a busy indicator is displayed and interaction is disabled.
@@ -82,14 +90,14 @@ export class Button implements LabelableComponent, InteractiveComponent, FormOwn
    *
    * @mdn [rel](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel)
    */
-  @Prop({ reflect: true }) rel?: string;
+  @Prop({ reflect: true }) rel: string;
 
   /**
    * The form ID to associate with the component.
    *
    * @deprecated – The property is no longer needed if the component is placed inside a form.
    */
-  @Prop() form?: string;
+  @Prop() form: string;
 
   /** When `true`, adds a round style to the component. */
   @Prop({ reflect: true }) round = false;
@@ -98,14 +106,14 @@ export class Button implements LabelableComponent, InteractiveComponent, FormOwn
   @Prop({ reflect: true }) scale: Scale = "m";
 
   /** Specifies if the component is a child of a `calcite-split-button`. */
-  @Prop({ reflect: true }) splitChild?: "primary" | "secondary" | false = false;
+  @Prop({ reflect: true }) splitChild: "primary" | "secondary" | false = false;
 
   /**
    * Specifies where to open the linked document defined in the `href` property.
    *
    * @mdn [target](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-target)
    */
-  @Prop({ reflect: true }) target?: string;
+  @Prop({ reflect: true }) target: string;
 
   /**
    * Specifies the default behavior of the button.
@@ -152,9 +160,15 @@ export class Button implements LabelableComponent, InteractiveComponent, FormOwn
   }
 
   componentWillLoad(): void {
+    setUpLoadableComponent(this);
+
     if (Build.isBrowser) {
       this.updateHasContent();
     }
+  }
+
+  componentDidLoad(): void {
+    setComponentLoaded(this);
   }
 
   componentDidRender(): void {
@@ -167,7 +181,6 @@ export class Button implements LabelableComponent, InteractiveComponent, FormOwn
     const loaderNode = this.hasLoader ? (
       <div class={CSS.buttonLoader}>
         <calcite-loader
-          active
           class={this.loading ? CSS.loadingIn : CSS.loadingOut}
           inline
           label={this.intlLoading}
@@ -238,6 +251,8 @@ export class Button implements LabelableComponent, InteractiveComponent, FormOwn
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
+    await componentLoaded(this);
+
     this.childEl?.focus();
   }
 

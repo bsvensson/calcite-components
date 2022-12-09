@@ -56,7 +56,7 @@ export class ComboboxItem implements ConditionalSlotComponent, InteractiveCompon
   @Prop({ reflect: true }) guid = guid();
 
   /** Specifies an icon to display. */
-  @Prop({ reflect: true }) icon?: string;
+  @Prop({ reflect: true }) icon: string;
 
   @Watch("selected")
   selectedWatchHandler(): void {
@@ -154,10 +154,7 @@ export class ComboboxItem implements ConditionalSlotComponent, InteractiveCompon
 
   itemClickHandler = (event: MouseEvent): void => {
     event.preventDefault();
-    if (this.disabled) {
-      return;
-    }
-    this.selected = !this.selected;
+    this.toggleSelected();
   };
 
   // --------------------------------------------------------------------------

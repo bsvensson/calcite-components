@@ -16,13 +16,19 @@ import { Scale } from "../interfaces";
 import { focusElement } from "../../utils/dom";
 import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 import { filter } from "../../utils/filter";
+import {
+  setUpLoadableComponent,
+  setComponentLoaded,
+  LoadableComponent,
+  componentLoaded
+} from "../../utils/loadable";
 
 @Component({
   tag: "calcite-filter",
   styleUrl: "filter.scss",
   shadow: true
 })
-export class Filter implements InteractiveComponent {
+export class Filter implements InteractiveComponent, LoadableComponent {
   // --------------------------------------------------------------------------
   //
   //  Properties
@@ -30,10 +36,12 @@ export class Filter implements InteractiveComponent {
   // --------------------------------------------------------------------------
 
   /**
-   * The items to filter through. The filter uses this as the starting point, and returns items
+   * Defines the items to filter. The component uses the values as the starting point, and returns items
+   *
    * that contain the string entered in the input, using a partial match and recursive search.
    *
-   * This property is required.
+   * This property is needed to conduct filtering.
+   *
    */
   @Prop({ mutable: true }) items: object[] = [];
 
@@ -43,37 +51,39 @@ export class Filter implements InteractiveComponent {
   }
 
   /**
-   * When true, disabled prevents interaction. This state shows items with lower opacity/grayed.
+   * When `true`, interaction is prevented and the component is displayed with lower opacity.
    */
   @Prop({ reflect: true }) disabled = false;
 
   /**
-   * The resulting items after filtering.
+   * The component's resulting items after filtering.
    *
    * @readonly
    */
   @Prop({ mutable: true }) filteredItems: object[] = [];
 
   /**
-   * A text label that will appear on the clear button.
+   * Accessible name for the component's clear button.
    */
-  @Prop() intlClear?: string;
+  @Prop() intlClear: string;
 
   /**
-   * A text label that will appear next to the input field.
+   * Accessible name for the component.
    */
-  @Prop() intlLabel?: string;
+  @Prop() intlLabel: string;
 
   /**
-   * Placeholder text for the input element's placeholder attribute
+   * Specifies placeholder text for the input element.
    */
-  @Prop() placeholder?: string;
+  @Prop() placeholder: string;
 
-  /** specify the scale of filter, defaults to m */
+  /**
+   * Specifies the size of the component.
+   */
   @Prop({ reflect: true }) scale: Scale = "m";
 
   /**
-   * Filter value.
+   * The component's value.
    */
   @Prop({ mutable: true }) value = "";
 
@@ -98,6 +108,16 @@ export class Filter implements InteractiveComponent {
   //
   //--------------------------------------------------------------------------
 
+  componentWillLoad(): void {
+    setUpLoadableComponent(this);
+
+    this.updateFiltered(filter(this.items, this.value));
+  }
+
+  componentDidLoad(): void {
+    setComponentLoaded(this);
+  }
+
   componentDidRender(): void {
     updateHostInteraction(this);
   }
@@ -109,19 +129,9 @@ export class Filter implements InteractiveComponent {
   // --------------------------------------------------------------------------
 
   /**
-   * This event fires when the filter text changes.
+   * Fires when the component's text changes.
    */
   @Event({ cancelable: false }) calciteFilterChange: EventEmitter<void>;
-
-  //--------------------------------------------------------------------------
-  //
-  //  Lifecycle
-  //
-  //--------------------------------------------------------------------------
-
-  componentWillLoad(): void {
-    this.filter(this.value);
-  }
 
   // --------------------------------------------------------------------------
   //
@@ -132,6 +142,8 @@ export class Filter implements InteractiveComponent {
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
+    await componentLoaded(this);
+
     focusElement(this.textInput);
   }
 

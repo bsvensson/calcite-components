@@ -60,15 +60,14 @@ describe("calcite-input-text", () => {
   it("inherits requested props when from wrapping calcite-label when props are provided", async () => {
     const page = await newE2EPage();
     await page.setContent(html`
-      <calcite-label status="invalid" scale="s">
+      <calcite-label scale="s">
         Label text
         <calcite-input-text></calcite-input-text>
       </calcite-label>
     `);
 
-    const deprecatedLabelStatusElement = await page.find("calcite-input-text");
-    expect(await deprecatedLabelStatusElement.getProperty("status")).toEqual("invalid");
-    expect(await deprecatedLabelStatusElement.getProperty("scale")).toEqual("s");
+    const inputTextElement = await page.find("calcite-input-text");
+    expect(await inputTextElement.getProperty("scale")).toEqual("s");
   });
 
   it("renders an icon when explicit Calcite UI is requested, and is a type without a default icon", async () => {
@@ -333,6 +332,13 @@ describe("calcite-input-text", () => {
     for (const button of buttons) {
       expect(await button.getProperty("disabled")).toBe(true);
     }
+  });
+
+  it("sets internals to pattern when the attribute is used", async () => {
+    const page = await newE2EPage();
+    await page.setContent(html`<calcite-input-text type="file" pattern="[a-z]{4,8}"></calcite-input-text>`);
+    const input = await page.find("calcite-input-text >>> input");
+    expect(await input.getProperty("pattern")).toBe("[a-z]{4,8}");
   });
 
   it("ArrowUp/ArrowDown function of moving caret to the beginning/end of text", async () => {

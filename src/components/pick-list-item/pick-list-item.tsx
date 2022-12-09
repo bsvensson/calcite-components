@@ -19,6 +19,12 @@ import {
   disconnectConditionalSlotComponent
 } from "../../utils/conditionalSlot";
 import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
+import {
+  setUpLoadableComponent,
+  setComponentLoaded,
+  LoadableComponent,
+  componentLoaded
+} from "../../utils/loadable";
 
 /**
  * @slot actions-end - A slot for adding `calcite-action`s or content to the end side of the component.
@@ -29,7 +35,9 @@ import { InteractiveComponent, updateHostInteraction } from "../../utils/interac
   styleUrl: "pick-list-item.scss",
   shadow: true
 })
-export class PickListItem implements ConditionalSlotComponent, InteractiveComponent {
+export class PickListItem
+  implements ConditionalSlotComponent, InteractiveComponent, LoadableComponent
+{
   // --------------------------------------------------------------------------
   //
   //  Properties
@@ -39,7 +47,7 @@ export class PickListItem implements ConditionalSlotComponent, InteractiveCompon
   /**
    * A description for the component that displays below the label text.
    */
-  @Prop({ reflect: true }) description?: string;
+  @Prop({ reflect: true }) description: string;
 
   @Watch("description")
   descriptionWatchHandler(): void {
@@ -66,7 +74,7 @@ export class PickListItem implements ConditionalSlotComponent, InteractiveCompon
    *
    * @see [ICON_TYPES](https://github.com/Esri/calcite-components/blob/master/src/components/pick-list/resources.ts#L5)
    */
-  @Prop({ reflect: true }) icon?: ICON_TYPES | null = null;
+  @Prop({ reflect: true }) icon: ICON_TYPES | null = null;
 
   /**
    * Label and accessible name for the component. Appears next to the icon.
@@ -81,7 +89,7 @@ export class PickListItem implements ConditionalSlotComponent, InteractiveCompon
   /**
    * Provides additional metadata to the component. Primary use is for a filter on the parent list.
    */
-  @Prop() metadata?: Record<string, unknown>;
+  @Prop() metadata: Record<string, unknown>;
 
   @Watch("metadata")
   metadataWatchHandler(): void {
@@ -91,7 +99,7 @@ export class PickListItem implements ConditionalSlotComponent, InteractiveCompon
   /**
    * When `true`, displays a remove action that removes the item from the list.
    */
-  @Prop({ reflect: true }) removable? = false;
+  @Prop({ reflect: true }) removable = false;
 
   /**
    * When `true`, selects an item. Toggles when an item is checked/unchecked.
@@ -147,6 +155,14 @@ export class PickListItem implements ConditionalSlotComponent, InteractiveCompon
 
   connectedCallback(): void {
     connectConditionalSlotComponent(this);
+  }
+
+  componentWillLoad(): void {
+    setUpLoadableComponent(this);
+  }
+
+  componentDidLoad(): void {
+    setComponentLoaded(this);
   }
 
   disconnectedCallback(): void {
@@ -215,6 +231,8 @@ export class PickListItem implements ConditionalSlotComponent, InteractiveCompon
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
+    await componentLoaded(this);
+
     this.focusEl?.focus();
   }
 
@@ -278,7 +296,7 @@ export class PickListItem implements ConditionalSlotComponent, InteractiveCompon
       <calcite-action
         class={CSS.remove}
         icon={ICONS.remove}
-        onCalciteActionClick={this.removeClickHandler}
+        onClick={this.removeClickHandler}
         slot={SLOTS.actionsEnd}
         text={this.intlRemove}
       />

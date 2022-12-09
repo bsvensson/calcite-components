@@ -3,6 +3,12 @@ import { focusElement, getElementDir } from "../../utils/dom";
 import { FlipContext } from "../interfaces";
 import { CSS_UTILITY } from "../../utils/resources";
 import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
+import {
+  setUpLoadableComponent,
+  setComponentLoaded,
+  LoadableComponent,
+  componentLoaded
+} from "../../utils/loadable";
 
 /** Any attributes placed on <calcite-link> component will propagate to the rendered child */
 /** Passing a 'href' will render an anchor link, instead of a span. Role will be set to link, or link, depending on this. */
@@ -14,7 +20,7 @@ import { InteractiveComponent, updateHostInteraction } from "../../utils/interac
   styleUrl: "link.scss",
   shadow: true
 })
-export class Link implements InteractiveComponent {
+export class Link implements InteractiveComponent, LoadableComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -40,28 +46,36 @@ export class Link implements InteractiveComponent {
   @Prop({ reflect: true }) download: string | boolean = false;
 
   /** Specifies the URL of the linked resource, which can be set as an absolute or relative path. */
-  @Prop({ reflect: true }) href?: string;
+  @Prop({ reflect: true }) href: string;
 
   /** Specifies an icon to display at the end of the component. */
-  @Prop({ reflect: true }) iconEnd?: string;
+  @Prop({ reflect: true }) iconEnd: string;
 
   /** When `true`, the icon will be flipped when the element direction is right-to-left (`"rtl"`). */
-  @Prop({ reflect: true }) iconFlipRtl?: FlipContext;
+  @Prop({ reflect: true }) iconFlipRtl: FlipContext;
 
   /** Specifies an icon to display at the start of the component. */
-  @Prop({ reflect: true }) iconStart?: string;
+  @Prop({ reflect: true }) iconStart: string;
 
   /** Specifies the relationship to the linked document defined in `href`. */
-  @Prop() rel?: string;
+  @Prop() rel: string;
 
   /** Specifies the frame or window to open the linked document. */
-  @Prop() target?: string;
+  @Prop() target: string;
 
   //--------------------------------------------------------------------------
   //
   //  Lifecycle
   //
   //--------------------------------------------------------------------------
+
+  componentWillLoad(): void {
+    setUpLoadableComponent(this);
+  }
+
+  componentDidLoad(): void {
+    setComponentLoaded(this);
+  }
 
   componentDidRender(): void {
     updateHostInteraction(this);
@@ -141,6 +155,8 @@ export class Link implements InteractiveComponent {
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
+    await componentLoaded(this);
+
     focusElement(this.childEl);
   }
 

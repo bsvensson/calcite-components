@@ -5,19 +5,24 @@ import {
   EventEmitter,
   Method,
   Prop,
-  Watch,
   h,
   VNode,
   Fragment,
   State
 } from "@stencil/core";
-import { CSS, HEADING_LEVEL, ICONS, SLOTS, TEXT } from "./resources";
-import { getElementDir, toAriaBoolean } from "../../utils/dom";
+import { CSS, ICONS, SLOTS, TEXT } from "./resources";
+import { toAriaBoolean } from "../../utils/dom";
 import { Scale } from "../interfaces";
 import { HeadingLevel, Heading } from "../functional/Heading";
 import { SLOTS as ACTION_MENU_SLOTS } from "../action-menu/resources";
 import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 import { createObserver } from "../../utils/observers";
+import {
+  setUpLoadableComponent,
+  setComponentLoaded,
+  LoadableComponent,
+  componentLoaded
+} from "../../utils/loadable";
 
 /**
  * @slot - A slot for adding custom content.
@@ -34,65 +39,23 @@ import { createObserver } from "../../utils/observers";
   styleUrl: "panel.scss",
   shadow: true
 })
-export class Panel implements InteractiveComponent {
+export class Panel implements InteractiveComponent, LoadableComponent {
   // --------------------------------------------------------------------------
   //
   //  Properties
   //
   // --------------------------------------------------------------------------
 
-  /**
-   * When `true`, hides the component.
-   *
-   * @deprecated use `closed` instead.
-   */
-  @Prop({ mutable: true, reflect: true }) dismissed = false;
-
   /** When `true`, the component will be hidden. */
   @Prop({ mutable: true, reflect: true }) closed = false;
-
-  @Watch("dismissed")
-  dismissedHandler(value: boolean): void {
-    this.closed = value;
-    this.calcitePanelDismissedChange.emit();
-  }
-
-  @Watch("closed")
-  closedHandler(value: boolean): void {
-    this.dismissed = value;
-  }
-
-  /**
-   * When provided, this method will be called before it is removed from the parent flow.
-   *
-   * @deprecated use `calcite-flow-item` instead.
-   */
-  @Prop() beforeBack?: () => Promise<void>;
 
   /**
    *  When `true`, interaction is prevented and the component is displayed with lower opacity.
    */
   @Prop({ reflect: true }) disabled = false;
 
-  /**
-   * When `true`, a close button is added to the component.
-   *
-   * @deprecated use `closable` instead
-   */
-  @Prop({ mutable: true, reflect: true }) dismissible = false;
-
-  @Watch("dismissible")
-  dismissibleHandler(value: boolean): void {
-    this.closable = value;
-  }
-
   /** When `true`, displays a close button in the trailing side of the header. */
   @Prop({ mutable: true, reflect: true }) closable = false;
-
-  @Watch("closable")
-  closableHandler(value: boolean): void {
-    this.dismissible = value;
-  }
 
   /**
    * Specifies the number at which section headings should start.
@@ -100,28 +63,14 @@ export class Panel implements InteractiveComponent {
   @Prop({ reflect: true }) headingLevel: HeadingLevel;
 
   /**
-   * When `true`, displays a back button in the header.
-   *
-   * @deprecated use `calcite-flow-item` instead.
-   */
-  @Prop({ reflect: true }) showBackButton = false;
-
-  /**
-   * Accessible name for the component's back button. The back button will only be shown when `showBackButton` is `true`.
-   *
-   * @deprecated use `calcite-flow-item` instead.
-   */
-  @Prop() intlBack?: string;
-
-  /**
    * Specifies the maximum height of the component.
    */
-  @Prop({ reflect: true }) heightScale?: Scale;
+  @Prop({ reflect: true }) heightScale: Scale;
 
   /**
    * Specifies the width of the component.
    */
-  @Prop({ reflect: true }) widthScale?: Scale;
+  @Prop({ reflect: true }) widthScale: Scale;
 
   /**
    * When `true`, a busy indicator is displayed.
@@ -131,24 +80,17 @@ export class Panel implements InteractiveComponent {
   /**
    * Accessible name for the component's close button. The close button will only be shown when `closeable` is `true`.
    */
-  @Prop() intlClose?: string;
+  @Prop() intlClose: string;
 
   /**
    * Accessible name for the component's actions menu.
    */
-  @Prop() intlOptions?: string;
+  @Prop() intlOptions: string;
 
   /**
    * The component header text.
    */
-  @Prop() heading?: string;
-
-  /**
-   * Summary text. A description displayed underneath the heading.
-   *
-   * @deprecated use `description` instead.
-   */
-  @Prop() summary?: string;
+  @Prop() heading: string;
 
   /** A description for the component. */
   @Prop() description: string;
@@ -163,6 +105,14 @@ export class Panel implements InteractiveComponent {
   //  Lifecycle
   //
   //--------------------------------------------------------------------------
+
+  componentWillLoad(): void {
+    setUpLoadableComponent(this);
+  }
+
+  componentDidLoad(): void {
+    setComponentLoaded(this);
+  }
 
   componentDidRender(): void {
     updateHostInteraction(this);
@@ -206,21 +156,6 @@ export class Panel implements InteractiveComponent {
   //
   // --------------------------------------------------------------------------
 
-  connectedCallback(): void {
-    const isClosed = this.dismissed || this.closed;
-    const isClosable = this.dismissible || this.closable;
-
-    if (isClosed) {
-      this.dismissedHandler(isClosed);
-      this.closedHandler(isClosed);
-    }
-
-    if (isClosable) {
-      this.dismissibleHandler(isClosable);
-      this.closableHandler(isClosable);
-    }
-  }
-
   disconnectedCallback(): void {
     this.resizeObserver?.disconnect();
   }
@@ -237,30 +172,9 @@ export class Panel implements InteractiveComponent {
   @Event({ cancelable: false }) calcitePanelClose: EventEmitter<void>;
 
   /**
-   * Fires when the close button is clicked.
-   *
-   * @deprecated use `calcitePanelClose` instead.
-   */
-  @Event({ cancelable: false }) calcitePanelDismiss: EventEmitter<void>;
-
-  /**
-   * Fires when there is a change to the `dismissed` property value .
-   *
-   * @deprecated use `calcitePanelClose` instead.
-   */
-  @Event({ cancelable: false }) calcitePanelDismissedChange: EventEmitter<void>;
-
-  /**
    * Fires when the content is scrolled.
    */
   @Event({ cancelable: false }) calcitePanelScroll: EventEmitter<void>;
-
-  /**
-   * Fires when the back button is clicked.
-   *
-   * @deprecated use `calcite-flow-item` instead.
-   */
-  @Event({ cancelable: false }) calcitePanelBackClick: EventEmitter<void>;
 
   // --------------------------------------------------------------------------
   //
@@ -303,16 +217,11 @@ export class Panel implements InteractiveComponent {
 
   close = (): void => {
     this.closed = true;
-    this.calcitePanelDismiss.emit();
     this.calcitePanelClose.emit();
   };
 
   panelScrollHandler = (): void => {
     this.calcitePanelScroll.emit();
-  };
-
-  backButtonClick = (): void => {
-    this.calcitePanelBackClick.emit();
   };
 
   handleHeaderActionsStartSlotChange = (event: Event): void => {
@@ -384,6 +293,8 @@ export class Panel implements InteractiveComponent {
    */
   @Method()
   async setFocus(focusId?: "back-button" | "dismiss-button"): Promise<void> {
+    await componentLoaded(this);
+
     const { backButtonEl, closeButtonEl, containerEl } = this;
 
     if (focusId === "back-button") {
@@ -431,39 +342,15 @@ export class Panel implements InteractiveComponent {
   //
   // --------------------------------------------------------------------------
 
-  renderBackButton(): VNode {
-    const { el } = this;
-
-    const rtl = getElementDir(el) === "rtl";
-    const { showBackButton, intlBack, backButtonClick } = this;
-    const label = intlBack || TEXT.back;
-    const icon = rtl ? ICONS.backRight : ICONS.backLeft;
-
-    return showBackButton ? (
-      <calcite-action
-        aria-label={label}
-        class={CSS.backButton}
-        icon={icon}
-        key="back-button"
-        onClick={backButtonClick}
-        ref={this.setBackRef}
-        scale="s"
-        slot={SLOTS.headerActionsStart}
-        text={label}
-      />
-    ) : null;
-  }
-
   renderHeaderContent(): VNode {
-    const { heading, headingLevel, summary, description, hasHeaderContent } = this;
+    const { heading, headingLevel, description, hasHeaderContent } = this;
     const headingNode = heading ? (
-      <Heading class={CSS.heading} level={headingLevel || HEADING_LEVEL}>
+      <Heading class={CSS.heading} level={headingLevel}>
         {heading}
       </Heading>
     ) : null;
 
-    const descriptionNode =
-      description || summary ? <span class={CSS.description}>{description || summary}</span> : null;
+    const descriptionNode = description ? <span class={CSS.description}>{description}</span> : null;
 
     return !hasHeaderContent && (headingNode || descriptionNode) ? (
       <div class={CSS.headerContent} key="header-content">
@@ -559,19 +446,11 @@ export class Panel implements InteractiveComponent {
   }
 
   renderHeaderNode(): VNode {
-    const {
-      showBackButton,
-      hasHeaderContent,
-      hasStartActions,
-      hasEndActions,
-      closable,
-      hasMenuItems
-    } = this;
+    const { hasHeaderContent, hasStartActions, hasEndActions, closable, hasMenuItems } = this;
 
     const headerContentNode = this.renderHeaderContent();
 
     const showHeader =
-      showBackButton ||
       hasHeaderContent ||
       headerContentNode ||
       hasStartActions ||
@@ -581,7 +460,6 @@ export class Panel implements InteractiveComponent {
 
     return (
       <header class={CSS.header} hidden={!showHeader}>
-        {this.renderBackButton()}
         {this.renderHeaderStartActions()}
         {this.renderHeaderSlottedContent()}
         {headerContentNode}

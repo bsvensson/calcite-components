@@ -98,7 +98,7 @@ calcite-handle {
 }
 
 .status-icon.loading {
-  animation: spin var(--calcite-internal-animation-timing-medium) linear infinite;
+  animation: spin calc(var(--calcite-internal-animation-timing-slow) * 2) linear infinite;
 }
 
 @keyframes spin {
@@ -135,9 +135,6 @@ calcite-handle {
 
 .content {
   @apply animate-in flex-1 relative;
-}
-
-.content--spaced {
   padding-block: var(--calcite-block-padding, theme("spacing.2"));
   padding-inline: var(--calcite-block-padding, theme("spacing[2.5]"));
 }

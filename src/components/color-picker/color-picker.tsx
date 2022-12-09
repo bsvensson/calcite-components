@@ -32,6 +32,12 @@ import { clamp } from "../../utils/math";
 import { InteractiveComponent, updateHostInteraction } from "../../utils/interactive";
 import { isActivationKey } from "../../utils/key";
 import { NumberingSystem } from "../../utils/locale";
+import {
+  setUpLoadableComponent,
+  setComponentLoaded,
+  LoadableComponent,
+  componentLoaded
+} from "../../utils/loadable";
 
 const throttleFor60FpsInMs = 16;
 const defaultValue = normalizeHex(DEFAULT_COLOR.hex());
@@ -42,7 +48,7 @@ const defaultFormat = "auto";
   styleUrl: "color-picker.scss",
   shadow: true
 })
-export class ColorPicker implements InteractiveComponent {
+export class ColorPicker implements InteractiveComponent, LoadableComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -260,7 +266,7 @@ export class ColorPicker implements InteractiveComponent {
   @Prop({ reflect: true }) storageId: string;
 
   /** Specifies the Unicode numeral system used by the component for localization. */
-  @Prop({ reflect: true }) numberingSystem?: NumberingSystem;
+  @Prop({ reflect: true }) numberingSystem: NumberingSystem;
 
   /**
    * The component's value, where the value can be a CSS color string, or a RGB, HSL or HSV object.
@@ -730,6 +736,8 @@ export class ColorPicker implements InteractiveComponent {
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
+    await componentLoaded(this);
+
     return focusElement(this.colorFieldScopeNode);
   }
 
@@ -740,6 +748,8 @@ export class ColorPicker implements InteractiveComponent {
   //--------------------------------------------------------------------------
 
   componentWillLoad(): void {
+    setUpLoadableComponent(this);
+
     const { allowEmpty, color, format, value } = this;
 
     const willSetNoColor = allowEmpty && !value;
@@ -762,6 +772,10 @@ export class ColorPicker implements InteractiveComponent {
     if (this.storageId && localStorage.getItem(storageKey)) {
       this.savedColors = JSON.parse(localStorage.getItem(storageKey));
     }
+  }
+
+  componentDidLoad(): void {
+    setComponentLoaded(this);
   }
 
   disconnectedCallback(): void {
@@ -958,16 +972,16 @@ export class ColorPicker implements InteractiveComponent {
 
   private renderChannelsTabTitle = (channelMode: this["channelMode"]): VNode => {
     const { channelMode: activeChannelMode, intlRgb, intlHsv } = this;
-    const active = channelMode === activeChannelMode;
+    const selected = channelMode === activeChannelMode;
     const label = channelMode === "rgb" ? intlRgb : intlHsv;
 
     return (
       <calcite-tab-title
-        active={active}
         class={CSS.colorMode}
         data-color-mode={channelMode}
         key={channelMode}
         onCalciteTabsActivate={this.handleTabActivate}
+        selected={selected}
       >
         {label}
       </calcite-tab-title>
@@ -992,7 +1006,7 @@ export class ColorPicker implements InteractiveComponent {
       intlValue
     } = this;
 
-    const active = channelMode === activeChannelMode;
+    const selected = channelMode === activeChannelMode;
     const isRgb = channelMode === "rgb";
     const channelLabels = isRgb ? [intlR, intlG, intlB] : [intlH, intlS, intlV];
     const channelAriaLabels = isRgb
@@ -1001,7 +1015,7 @@ export class ColorPicker implements InteractiveComponent {
     const direction = getElementDir(this.el);
 
     return (
-      <calcite-tab active={active} class={CSS.control} key={channelMode}>
+      <calcite-tab class={CSS.control} key={channelMode} selected={selected}>
         {/* channel order should not be mirrored */}
         <div class={CSS.channels} dir="ltr">
           {channels.map((channel, index) =>

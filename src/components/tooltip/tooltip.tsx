@@ -1,4 +1,16 @@
-import { Component, Element, Host, Method, Prop, State, Watch, h, VNode } from "@stencil/core";
+import {
+  Component,
+  Element,
+  Host,
+  Method,
+  Prop,
+  State,
+  Watch,
+  h,
+  VNode,
+  Event,
+  EventEmitter
+} from "@stencil/core";
 import { CSS, ARIA_DESCRIBED_BY } from "./resources";
 import { guid } from "../../utils/guid";
 import {
@@ -14,6 +26,11 @@ import {
   updateAfterClose
 } from "../../utils/floating-ui";
 import { queryElementRoots, toAriaBoolean } from "../../utils/dom";
+import {
+  OpenCloseComponent,
+  connectOpenCloseComponent,
+  disconnectOpenCloseComponent
+} from "../../utils/openCloseComponent";
 
 import TooltipManager from "./TooltipManager";
 
@@ -27,7 +44,7 @@ const manager = new TooltipManager();
   styleUrl: "tooltip.scss",
   shadow: true
 })
-export class Tooltip implements FloatingUIComponent {
+export class Tooltip implements FloatingUIComponent, OpenCloseComponent {
   // --------------------------------------------------------------------------
   //
   //  Properties
@@ -93,8 +110,6 @@ export class Tooltip implements FloatingUIComponent {
 
   /**
    * Determines where the component will be positioned relative to the `referenceElement`.
-   *
-   * @see [LogicalPlacement](https://github.com/Esri/calcite-components/blob/master/src/utils/floating-ui.ts#L25)
    */
   @Prop({ reflect: true }) placement: LogicalPlacement = "auto";
 
@@ -133,6 +148,10 @@ export class Tooltip implements FloatingUIComponent {
 
   hasLoaded = false;
 
+  openTransitionProp = "opacity";
+
+  transitionEl: HTMLDivElement;
+
   // --------------------------------------------------------------------------
   //
   //  Lifecycle
@@ -140,6 +159,7 @@ export class Tooltip implements FloatingUIComponent {
   // --------------------------------------------------------------------------
 
   connectedCallback(): void {
+    connectOpenCloseComponent(this);
     this.setUpReferenceElement(this.hasLoaded);
   }
 
@@ -154,7 +174,26 @@ export class Tooltip implements FloatingUIComponent {
   disconnectedCallback(): void {
     this.removeReferences();
     disconnectFloatingUI(this, this.effectiveReferenceElement, this.el);
+    disconnectOpenCloseComponent(this);
   }
+
+  //--------------------------------------------------------------------------
+  //
+  //  Events
+  //
+  //--------------------------------------------------------------------------
+
+  /** Fires when the component is requested to be closed and before the closing transition begins. */
+  @Event({ cancelable: false }) calciteTooltipBeforeClose: EventEmitter<void>;
+
+  /** Fires when the component is closed and animation is complete. */
+  @Event({ cancelable: false }) calciteTooltipClose: EventEmitter<void>;
+
+  /** Fires when the component is added to the DOM but not rendered, and before the opening transition begins. */
+  @Event({ cancelable: false }) calciteTooltipBeforeOpen: EventEmitter<void>;
+
+  /** Fires when the component is open and animation is complete. */
+  @Event({ cancelable: false }) calciteTooltipOpen: EventEmitter<void>;
 
   // --------------------------------------------------------------------------
   //
@@ -201,6 +240,27 @@ export class Tooltip implements FloatingUIComponent {
   //  Private Methods
   //
   // --------------------------------------------------------------------------
+
+  onBeforeOpen(): void {
+    this.calciteTooltipBeforeOpen.emit();
+  }
+
+  onOpen(): void {
+    this.calciteTooltipOpen.emit();
+  }
+
+  onBeforeClose(): void {
+    this.calciteTooltipBeforeClose.emit();
+  }
+
+  onClose(): void {
+    this.calciteTooltipClose.emit();
+  }
+
+  private setTransitionEl = (el): void => {
+    this.transitionEl = el;
+    connectOpenCloseComponent(this);
+  };
 
   setUpReferenceElement = (warn = true): void => {
     this.removeReferences();
@@ -286,6 +346,7 @@ export class Tooltip implements FloatingUIComponent {
             [FloatingCSS.animation]: true,
             [FloatingCSS.animationActive]: displayed
           }}
+          ref={this.setTransitionEl}
         >
           <div class={CSS.arrow} ref={(arrowEl) => (this.arrowEl = arrowEl)} />
           <div class={CSS.container}>

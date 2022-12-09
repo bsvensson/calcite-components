@@ -64,6 +64,12 @@ import {
   numberStringFormatter
 } from "../../utils/locale";
 import { numberKeys } from "../../utils/key";
+import {
+  setUpLoadableComponent,
+  setComponentLoaded,
+  LoadableComponent,
+  componentLoaded
+} from "../../utils/loadable";
 
 @Component({
   tag: "calcite-input-date-picker",
@@ -77,7 +83,8 @@ export class InputDatePicker
     InteractiveComponent,
     OpenCloseComponent,
     FloatingUIComponent,
-    LocalizedComponent
+    LocalizedComponent,
+    LoadableComponent
 {
   //--------------------------------------------------------------------------
   //
@@ -117,15 +124,21 @@ export class InputDatePicker
   @Watch("value")
   valueWatcher(newValue: string | string[]): void {
     if (!this.userChangedValue) {
+      let newValueAsDate;
       if (Array.isArray(newValue)) {
-        this.valueAsDate = getValueAsDateRange(newValue);
+        newValueAsDate = getValueAsDateRange(newValue);
         this.start = newValue[0];
         this.end = newValue[1];
       } else if (newValue) {
-        this.valueAsDate = dateFromISO(newValue);
+        newValueAsDate = dateFromISO(newValue);
       } else {
-        this.valueAsDate = undefined;
+        newValueAsDate = undefined;
       }
+
+      if (!this.valueAsDateChangedExternally && newValueAsDate !== this.valueAsDate) {
+        this.valueAsDate = newValueAsDate;
+      }
+
       this.localizeInputValues();
     }
     this.userChangedValue = false;
@@ -134,12 +147,21 @@ export class InputDatePicker
   @Watch("valueAsDate")
   valueAsDateWatcher(valueAsDate: Date): void {
     this.datePickerActiveDate = valueAsDate;
+    const newValue =
+      this.range && Array.isArray(valueAsDate)
+        ? [dateToISO(valueAsDate[0]), dateToISO(valueAsDate[1])]
+        : dateToISO(valueAsDate);
+    if (this.value !== newValue) {
+      this.valueAsDateChangedExternally = true;
+      this.value = newValue;
+      this.valueAsDateChangedExternally = false;
+    }
   }
 
   /**
    * Defines the available placements that can be used when a flip occurs.
    */
-  @Prop() flipPlacements?: EffectivePlacement[];
+  @Prop() flipPlacements: EffectivePlacement[];
 
   @Watch("flipPlacements")
   flipPlacementsHandler(): void {
@@ -153,30 +175,30 @@ export class InputDatePicker
   @Prop({ reflect: true }) headingLevel: HeadingLevel;
 
   /** The component's value as a full date object. */
-  @Prop({ mutable: true }) valueAsDate?: Date | Date[];
+  @Prop({ mutable: true }) valueAsDate: Date | Date[];
 
   /**
    * The component's start date as a full date object.
    *
    * @deprecated use `valueAsDate` instead.
    */
-  @Prop({ mutable: true }) startAsDate?: Date;
+  @Prop({ mutable: true }) startAsDate: Date;
 
   /**
    * The component's end date as a full date object.
    *
    * @deprecated use `valueAsDate` instead.
    */
-  @Prop({ mutable: true }) endAsDate?: Date;
+  @Prop({ mutable: true }) endAsDate: Date;
 
   /** Specifies the earliest allowed date as a full date object. */
-  @Prop({ mutable: true }) minAsDate?: Date;
+  @Prop({ mutable: true }) minAsDate: Date;
 
   /** Specifies the latest allowed date as a full date object. */
-  @Prop({ mutable: true }) maxAsDate?: Date;
+  @Prop({ mutable: true }) maxAsDate: Date;
 
   /** Specifies the earliest allowed date ("yyyy-mm-dd"). */
-  @Prop({ mutable: true }) min?: string;
+  @Prop({ mutable: true }) min: string;
 
   @Watch("min")
   onMinChanged(min: string): void {
@@ -186,7 +208,7 @@ export class InputDatePicker
   }
 
   /** Specifies the latest allowed date ("yyyy-mm-dd"). */
-  @Prop({ mutable: true }) max?: string;
+  @Prop({ mutable: true }) max: string;
 
   @Watch("max")
   onMaxChanged(max: string): void {
@@ -239,21 +261,21 @@ export class InputDatePicker
    *
    * @default "Previous month"
    */
-  @Prop() intlPrevMonth?: string = TEXT.prevMonth;
+  @Prop() intlPrevMonth: string = TEXT.prevMonth;
 
   /**
    * Accessible name for the component's next month button.
    *
    * @default "Next month"
    */
-  @Prop() intlNextMonth?: string = TEXT.nextMonth;
+  @Prop() intlNextMonth: string = TEXT.nextMonth;
 
   /**
    * Accessible name for the component's year input.
    *
    * @default "Year"
    */
-  @Prop() intlYear?: string = TEXT.year;
+  @Prop() intlYear: string = TEXT.year;
 
   /**
    * Specifies the BCP 47 language tag for the desired language and country format.
@@ -261,13 +283,13 @@ export class InputDatePicker
    * @deprecated set the global `lang` attribute on the element instead.
    * @mdn [lang](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/lang)
    */
-  @Prop() locale?: string;
+  @Prop() locale: string;
 
   /**
    * Specifies the Unicode numeral system used by the component for localization. This property cannot be dynamically changed.
    *
    */
-  @Prop({ reflect: true }) numberingSystem?: NumberingSystem;
+  @Prop({ reflect: true }) numberingSystem: NumberingSystem;
 
   /** Specifies the size of the component. */
   @Prop({ reflect: true }) scale: "s" | "m" | "l" = "m";
@@ -294,14 +316,14 @@ export class InputDatePicker
    *
    * @deprecated use `value` instead.
    */
-  @Prop({ mutable: true, reflect: true }) start?: string;
+  @Prop({ mutable: true, reflect: true }) start: string;
 
   /**
    * The component's end date.
    *
    * @deprecated use `value` instead.
    */
-  @Prop({ mutable: true, reflect: true }) end?: string;
+  @Prop({ mutable: true, reflect: true }) end: string;
 
   /**
    * Determines the type of positioning to use for the overlaid content.
@@ -408,6 +430,8 @@ export class InputDatePicker
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
+    await componentLoaded(this);
+
     this.startInput?.setFocus();
   }
 
@@ -459,6 +483,8 @@ export class InputDatePicker
       }
       this.start = "";
       this.end = "";
+    } else if (this.range && this.valueAsDate) {
+      this.setRangeValue(this.valueAsDate as Date[]);
     }
 
     if (this.start) {
@@ -492,12 +518,14 @@ export class InputDatePicker
   }
 
   async componentWillLoad(): Promise<void> {
+    setUpLoadableComponent(this);
     await this.loadLocaleData();
     this.onMinChanged(this.min);
     this.onMaxChanged(this.max);
   }
 
   componentDidLoad(): void {
+    setComponentLoaded(this);
     this.localizeInputValues();
     this.reposition(true);
   }
@@ -534,7 +562,6 @@ export class InputDatePicker
                   disabled={disabled}
                   icon="calendar"
                   label={getLabelText(this)}
-                  lang={effectiveLocale}
                   number-button-type="none"
                   numberingSystem={numberingSystem}
                   onCalciteInputInput={this.calciteInternalInputInputHandler}
@@ -573,7 +600,6 @@ export class InputDatePicker
                   intlNextMonth={this.intlNextMonth}
                   intlPrevMonth={this.intlPrevMonth}
                   intlYear={this.intlYear}
-                  lang={effectiveLocale}
                   max={this.max}
                   maxAsDate={this.maxAsDate}
                   min={this.min}
@@ -610,7 +636,6 @@ export class InputDatePicker
                   }}
                   disabled={disabled}
                   icon="calendar"
-                  lang={effectiveLocale}
                   number-button-type="none"
                   numberingSystem={numberingSystem}
                   onCalciteInputInput={this.calciteInternalInputInputHandler}
@@ -685,6 +710,8 @@ export class InputDatePicker
 
     connectFloatingUI(this, this.referenceEl, this.floatingEl);
   }
+
+  private valueAsDateChangedExternally = false;
 
   //--------------------------------------------------------------------------
   //
@@ -845,7 +872,11 @@ export class InputDatePicker
     if (!Build.isBrowser) {
       return;
     }
-
+    numberStringFormatter.numberFormatOptions = {
+      numberingSystem: this.numberingSystem,
+      locale: this.effectiveLocale,
+      useGrouping: false
+    };
     this.localeData = await getLocaleData(this.effectiveLocale);
   }
 
@@ -1009,17 +1040,12 @@ export class InputDatePicker
     );
   }
 
-  private commonDateSeparators = [".", "-", "/"];
-
   private formatNumerals = (value: string): string =>
     value
       ? value
           .split("")
           .map((char: string) =>
-            // convert common separators to the locale's
-            this.commonDateSeparators.includes(char)
-              ? this.localeData.separator
-              : numberKeys.includes(char)
+            numberKeys.includes(char)
               ? numberStringFormatter.numberFormatter.format(Number(char))
               : char
           )

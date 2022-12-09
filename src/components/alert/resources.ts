@@ -9,11 +9,14 @@ export const DURATIONS = {
 };
 
 export const SLOTS = {
+  actionsEnd: "actions-end",
   title: "title",
   message: "message",
   link: "link"
 };
 
 export const CSS = {
-  container: "container"
+  actionsEnd: "actions-end",
+  container: "container",
+  close: "alert-close"
 };

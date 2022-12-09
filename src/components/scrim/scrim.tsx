@@ -22,7 +22,7 @@ export class Scrim {
    *
    * @default "Loading"
    */
-  @Prop() intlLoading?: string = TEXT.loading;
+  @Prop() intlLoading: string = TEXT.loading;
 
   /**
    * When `true`, a busy indicator is displayed.
@@ -46,7 +46,7 @@ export class Scrim {
   render(): VNode {
     const { el, loading, intlLoading } = this;
     const hasContent = el.innerHTML.trim().length > 0;
-    const loaderNode = loading ? <calcite-loader active label={intlLoading} /> : null;
+    const loaderNode = loading ? <calcite-loader label={intlLoading} /> : null;
     const contentNode = hasContent ? (
       <div class={CSS.content}>
         <slot />

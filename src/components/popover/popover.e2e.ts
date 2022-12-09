@@ -1,7 +1,7 @@
 import { newE2EPage } from "@stencil/core/testing";
 import { html } from "../../../support/formatting";
 
-import { accessible, defaults, hidden, renders, floatingUIOwner } from "../../tests/commonTests";
+import { accessible, defaults, hidden, renders, floatingUIOwner, focusable } from "../../tests/commonTests";
 import { CSS } from "./resources";
 
 describe("calcite-popover", () => {
@@ -37,10 +37,6 @@ describe("calcite-popover", () => {
   it("is accessible when open", async () =>
     accessible(`<calcite-popover label="test" open reference-element="ref"></calcite-popover><div id="ref">😄</div>`));
 
-  it("is accessible with close button (deprecated)", async () =>
-    accessible(
-      `<calcite-popover label="test" open dismissible reference-element="ref"></calcite-popover><div id="ref">😄</div>`
-    ));
   it("is accessible with close button", async () =>
     accessible(
       `<calcite-popover label="test" open closable reference-element="ref"></calcite-popover><div id="ref">😄</div>`
@@ -68,10 +64,6 @@ describe("calcite-popover", () => {
       },
       {
         propertyName: "open",
-        defaultValue: false
-      },
-      {
-        propertyName: "dismissible",
         defaultValue: false
       },
       {
@@ -193,28 +185,6 @@ describe("calcite-popover", () => {
     const computedStyle = await popover.getComputedStyle();
 
     expect(computedStyle.transform).not.toBe("matrix(0, 0, 0, 0, 0, 0)");
-  });
-
-  it("should show closeButton when enabled (deprecated)", async () => {
-    const page = await newE2EPage();
-
-    await page.setContent(
-      `<calcite-popover placement="auto" reference-element="ref" open>content</calcite-popover><div id="ref">referenceElement</div>`
-    );
-
-    await page.waitForChanges();
-
-    let closeButton = await page.find(`calcite-popover >>> .${CSS.closeButton}`);
-
-    expect(closeButton).toBe(null);
-
-    const element = await page.find("calcite-popover");
-
-    element.setProperty("dismissible", true);
-
-    await page.waitForChanges();
-
-    closeButton = await page.find(`calcite-popover >>> .${CSS.closeButton}`);
   });
 
   it("should show closeButton when enabled with closable prop", async () => {
@@ -684,28 +654,6 @@ describe("calcite-popover", () => {
     expect(await shadowPopover.getProperty("open")).toBe(false);
   });
 
-  it("should set dismissible prop to true when closable is true", async () => {
-    const page = await newE2EPage();
-
-    await page.setContent(
-      html`<calcite-popover label="Example label" reference-element="popover-button" closable>
-        <p style="padding:0 10px;display:flex;flex-direction:row">
-          <calcite-icon icon="3d-glasses"></calcite-icon> Popover content here
-        </p>
-      </calcite-popover>`
-    );
-
-    await page.waitForChanges();
-    const popoverEl = await page.find("calcite-popover");
-
-    expect(await popoverEl.getProperty("closable")).toBe(true);
-
-    popoverEl.setProperty("dismissible", false);
-    await page.waitForChanges();
-
-    expect(await popoverEl.getProperty("closable")).toBe(false);
-  });
-
   it("should still function when disconnected and reconnected", async () => {
     const page = await newE2EPage();
 
@@ -764,5 +712,26 @@ describe("calcite-popover", () => {
     await page.waitForChanges();
 
     expect(await popover.getProperty("open")).toBe(false);
+  });
+
+  describe("setFocus", () => {
+    const createPopoverHTML = (contentHTML?: string, attrs?: string) =>
+      `<calcite-popover open ${attrs} reference-element="ref">${contentHTML}</calcite-popover><button id="ref">Button</button>`;
+
+    const closeButtonFocusId = "close-button";
+
+    const contentButtonClass = "my-button";
+    const contentHTML = `<button class="${contentButtonClass}">My Button</button>`;
+
+    it("should focus content by default", async () =>
+      focusable(createPopoverHTML(contentHTML), {
+        focusTargetSelector: `.${contentButtonClass}`
+      }));
+
+    it("should focus close button", async () =>
+      focusable(createPopoverHTML(contentHTML, "closable"), {
+        focusId: closeButtonFocusId,
+        shadowFocusTargetSelector: `.${CSS.closeButton}`
+      }));
   });
 });

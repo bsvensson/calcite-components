@@ -26,6 +26,12 @@ import {
   disconnectLocalized,
   connectLocalized
 } from "../../utils/locale";
+import {
+  setUpLoadableComponent,
+  setComponentLoaded,
+  LoadableComponent,
+  componentLoaded
+} from "../../utils/loadable";
 
 /**
  * @slot - A slot for adding custom content.
@@ -35,7 +41,7 @@ import {
   styleUrl: "stepper-item.scss",
   shadow: true
 })
-export class StepperItem implements InteractiveComponent, LocalizedComponent {
+export class StepperItem implements InteractiveComponent, LocalizedComponent, LoadableComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -51,25 +57,12 @@ export class StepperItem implements InteractiveComponent, LocalizedComponent {
   //--------------------------------------------------------------------------
 
   /**
-   *  When `true`, the component is selected.
-   *
-   * @deprecated Use `selected` instead.
-   */
-  @Prop({ reflect: true, mutable: true }) active = false;
-
-  @Watch("active")
-  activeHandler(value: boolean): void {
-    this.selected = value;
-  }
-
-  /**
    * When `true`, the component is selected.
    */
   @Prop({ reflect: true, mutable: true }) selected = false;
 
   @Watch("selected")
-  selectedHandler(value: boolean): void {
-    this.active = value;
+  selectedHandler(): void {
     if (this.selected) {
       this.emitRequestedItem();
     }
@@ -84,22 +77,8 @@ export class StepperItem implements InteractiveComponent, LocalizedComponent {
   /** When `true`, interaction is prevented and the component is displayed with lower opacity. */
   @Prop({ reflect: true }) disabled = false;
 
-  /**
-   * The component header text.
-   *
-   * @deprecated use `heading` instead.
-   */
-  @Prop() itemTitle?: string;
-
   /** The component header text. */
-  @Prop() heading?: string;
-
-  /**
-   * A description for the component. Displays below the header text.
-   *
-   * @deprecated use `description` instead.
-   */
-  @Prop() itemSubtitle?: string;
+  @Prop() heading: string;
 
   /** A description for the component. Displays below the header text. */
   @Prop() description: string;
@@ -107,7 +86,7 @@ export class StepperItem implements InteractiveComponent, LocalizedComponent {
   // internal props inherited from wrapping calcite-stepper
   /** Defines the layout of the component. */
   /** @internal */
-  @Prop({ reflect: true, mutable: true }) layout?: Extract<"horizontal" | "vertical", Layout> =
+  @Prop({ reflect: true, mutable: true }) layout: Extract<"horizontal" | "vertical", Layout> =
     "horizontal";
 
   /** When `true`, displays a status icon in the component's heading. */
@@ -185,16 +164,10 @@ export class StepperItem implements InteractiveComponent, LocalizedComponent {
 
   connectedCallback(): void {
     connectLocalized(this);
-    const { selected, active } = this;
-
-    if (selected) {
-      this.active = selected;
-    } else if (active) {
-      this.selected = active;
-    }
   }
 
   componentWillLoad(): void {
+    setUpLoadableComponent(this);
     this.icon = getElementProp(this.el, "icon", false);
     this.numbered = getElementProp(this.el, "numbered", false);
     this.layout = getElementProp(this.el, "layout", false);
@@ -214,6 +187,10 @@ export class StepperItem implements InteractiveComponent, LocalizedComponent {
     };
   }
 
+  componentDidLoad(): void {
+    setComponentLoaded(this);
+  }
+
   componentDidRender(): void {
     updateHostInteraction(this, true);
   }
@@ -225,7 +202,7 @@ export class StepperItem implements InteractiveComponent, LocalizedComponent {
   render(): VNode {
     return (
       <Host
-        aria-expanded={toAriaBoolean(this.active)}
+        aria-expanded={toAriaBoolean(this.selected)}
         onClick={this.handleItemClick}
         onKeyDown={this.keyDownHandler}
       >
@@ -245,8 +222,8 @@ export class StepperItem implements InteractiveComponent, LocalizedComponent {
               </div>
             ) : null}
             <div class="stepper-item-header-text">
-              <span class="stepper-item-heading">{this.heading || this.itemTitle}</span>
-              <span class="stepper-item-description">{this.description || this.itemSubtitle}</span>
+              <span class="stepper-item-heading">{this.heading}</span>
+              <span class="stepper-item-description">{this.description}</span>
             </div>
           </div>
           <div class="stepper-item-content">
@@ -282,6 +259,8 @@ export class StepperItem implements InteractiveComponent, LocalizedComponent {
 
   @Method()
   async setFocus(): Promise<void> {
+    await componentLoaded(this);
+
     (this.layout === "vertical" ? this.el : this.headerEl)?.focus();
   }
 

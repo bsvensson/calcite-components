@@ -12,14 +12,7 @@ import {
   h,
   VNode
 } from "@stencil/core";
-import {
-  CSS,
-  ARIA_CONTROLS,
-  ARIA_EXPANDED,
-  HEADING_LEVEL,
-  TEXT,
-  defaultPopoverPlacement
-} from "./resources";
+import { CSS, ARIA_CONTROLS, ARIA_EXPANDED, TEXT, defaultPopoverPlacement } from "./resources";
 import {
   FloatingCSS,
   OverlayPositioning,
@@ -34,6 +27,13 @@ import {
   reposition,
   updateAfterClose
 } from "../../utils/floating-ui";
+import {
+  FocusTrapComponent,
+  FocusTrap,
+  connectFocusTrap,
+  activateFocusTrap,
+  deactivateFocusTrap
+} from "../../utils/focusTrapComponent";
 
 import { guid } from "../../utils/guid";
 import { queryElementRoots, toAriaBoolean } from "../../utils/dom";
@@ -47,6 +47,13 @@ import { Scale } from "../interfaces";
 
 import PopoverManager from "./PopoverManager";
 
+import {
+  setUpLoadableComponent,
+  setComponentLoaded,
+  LoadableComponent,
+  componentLoaded
+} from "../../utils/loadable";
+
 const manager = new PopoverManager();
 
 /**
@@ -57,7 +64,9 @@ const manager = new PopoverManager();
   styleUrl: "popover.scss",
   shadow: true
 })
-export class Popover implements FloatingUIComponent, OpenCloseComponent {
+export class Popover
+  implements FloatingUIComponent, OpenCloseComponent, FocusTrapComponent, LoadableComponent
+{
   // --------------------------------------------------------------------------
   //
   //  Properties
@@ -69,37 +78,18 @@ export class Popover implements FloatingUIComponent, OpenCloseComponent {
    */
   @Prop({ reflect: true }) autoClose = false;
 
-  /**
-   * When `true`, a close button is added to the component.
-   *
-   * @deprecated use dismissible instead.
-   */
-  @Prop({ reflect: true }) closeButton = false;
-
-  /**
-   * When `true`, a close button is added to the component.
-   *
-   * @deprecated use `closable` instead.
-   */
-  @Prop({ mutable: true, reflect: true }) dismissible = false;
-
-  @Watch("dismissible")
-  handleDismissible(value: boolean): void {
-    this.closable = value;
-  }
-
   /** When `true`, display a close button within the component. */
   @Prop({ mutable: true, reflect: true }) closable = false;
-
-  @Watch("closable")
-  handleClosable(value: boolean): void {
-    this.dismissible = value;
-  }
 
   /**
    * When `true`, prevents flipping the component's placement when overlapping its `referenceElement`.
    */
   @Prop({ reflect: true }) disableFlip = false;
+
+  /**
+   * When `true`, prevents focus trapping.
+   */
+  @Prop({ reflect: true }) disableFocusTrap = false;
 
   /**
    * When `true`, removes the caret pointer.
@@ -109,7 +99,7 @@ export class Popover implements FloatingUIComponent, OpenCloseComponent {
   /**
    * Defines the available placements that can be used when a flip occurs.
    */
-  @Prop() flipPlacements?: EffectivePlacement[];
+  @Prop() flipPlacements: EffectivePlacement[];
 
   @Watch("flipPlacements")
   flipPlacementsHandler(): void {
@@ -120,7 +110,7 @@ export class Popover implements FloatingUIComponent, OpenCloseComponent {
   /**
    * The component header text.
    */
-  @Prop() heading?: string;
+  @Prop() heading: string;
 
   /**
    * Specifies the number at which section headings should start.
@@ -185,8 +175,6 @@ export class Popover implements FloatingUIComponent, OpenCloseComponent {
 
   /**
    * Determines where the component will be positioned relative to the `referenceElement`.
-   *
-   * @see [LogicalPlacement](https://github.com/Esri/calcite-components/blob/master/src/utils/floating-ui.ts#L25)
    */
   @Prop({ reflect: true }) placement: LogicalPlacement = defaultPopoverPlacement;
 
@@ -247,6 +235,10 @@ export class Popover implements FloatingUIComponent, OpenCloseComponent {
 
   hasLoaded = false;
 
+  focusTrap: FocusTrap;
+
+  focusTrapEl: HTMLDivElement;
+
   // --------------------------------------------------------------------------
   //
   //  Lifecycle
@@ -256,17 +248,15 @@ export class Popover implements FloatingUIComponent, OpenCloseComponent {
   connectedCallback(): void {
     this.setFilteredPlacements();
     connectOpenCloseComponent(this);
-    const closable = this.closable || this.dismissible;
-    if (closable) {
-      this.handleDismissible(closable);
-    }
-    if (closable) {
-      this.handleClosable(closable);
-    }
     this.setUpReferenceElement(this.hasLoaded);
   }
 
+  componentWillLoad(): void {
+    setUpLoadableComponent(this);
+  }
+
   componentDidLoad(): void {
+    setComponentLoaded(this);
     if (this.referenceElement && !this.effectiveReferenceElement) {
       this.setUpReferenceElement();
     }
@@ -278,6 +268,7 @@ export class Popover implements FloatingUIComponent, OpenCloseComponent {
     this.removeReferences();
     disconnectFloatingUI(this, this.effectiveReferenceElement, this.el);
     disconnectOpenCloseComponent(this);
+    deactivateFocusTrap(this);
   }
 
   //--------------------------------------------------------------------------
@@ -348,6 +339,8 @@ export class Popover implements FloatingUIComponent, OpenCloseComponent {
    */
   @Method()
   async setFocus(focusId?: "close-button"): Promise<void> {
+    await componentLoaded(this);
+
     const { closeButtonEl } = this;
 
     if (focusId === "close-button" && closeButtonEl) {
@@ -357,7 +350,7 @@ export class Popover implements FloatingUIComponent, OpenCloseComponent {
       return;
     }
 
-    this.el?.focus();
+    activateFocusTrap(this);
   }
 
   /**
@@ -376,9 +369,11 @@ export class Popover implements FloatingUIComponent, OpenCloseComponent {
   //
   // --------------------------------------------------------------------------
 
-  private setTransitionEl = (el): void => {
+  private setTransitionEl = (el: HTMLDivElement): void => {
     this.transitionEl = el;
     connectOpenCloseComponent(this);
+    this.focusTrapEl = el;
+    connectFocusTrap(this);
   };
 
   setFilteredPlacements = (): void => {
@@ -472,6 +467,9 @@ export class Popover implements FloatingUIComponent, OpenCloseComponent {
 
   onOpen(): void {
     this.calcitePopoverOpen.emit();
+    if (!this.disableFocusTrap) {
+      activateFocusTrap(this);
+    }
   }
 
   onBeforeClose(): void {
@@ -480,6 +478,7 @@ export class Popover implements FloatingUIComponent, OpenCloseComponent {
 
   onClose(): void {
     this.calcitePopoverClose.emit();
+    deactivateFocusTrap(this);
   }
 
   storeArrowEl = (el: HTMLDivElement): void => {
@@ -494,9 +493,9 @@ export class Popover implements FloatingUIComponent, OpenCloseComponent {
   // --------------------------------------------------------------------------
 
   renderCloseButton(): VNode {
-    const { closeButton, intlClose, closable } = this;
+    const { intlClose, closable } = this;
 
-    return closable || closeButton ? (
+    return closable ? (
       <div class={CSS.closeButtonContainer}>
         <calcite-action
           class={CSS.closeButton}
@@ -514,7 +513,7 @@ export class Popover implements FloatingUIComponent, OpenCloseComponent {
   renderHeader(): VNode {
     const { heading, headingLevel } = this;
     const headingNode = heading ? (
-      <Heading class={CSS.heading} level={headingLevel || HEADING_LEVEL}>
+      <Heading class={CSS.heading} level={headingLevel}>
         {heading}
       </Heading>
     ) : null;

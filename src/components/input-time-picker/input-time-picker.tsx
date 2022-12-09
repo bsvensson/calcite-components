@@ -34,6 +34,12 @@ import {
   updateEffectiveLocale
 } from "../../utils/locale";
 import { numberKeys } from "../../utils/key";
+import {
+  setUpLoadableComponent,
+  setComponentLoaded,
+  LoadableComponent,
+  componentLoaded
+} from "../../utils/loadable";
 
 @Component({
   tag: "calcite-input-time-picker",
@@ -46,7 +52,8 @@ export class InputTimePicker
     FormComponent,
     InteractiveComponent,
     FloatingUIComponent,
-    LocalizedComponent
+    LocalizedComponent,
+    LoadableComponent
 {
   //--------------------------------------------------------------------------
   //
@@ -110,40 +117,40 @@ export class InputTimePicker
   }
 
   /** Accessible name for the component's hour input. */
-  @Prop() intlHour?: string;
+  @Prop() intlHour: string;
 
   /** Accessible name for the component's hour down button. */
-  @Prop() intlHourDown?: string;
+  @Prop() intlHourDown: string;
 
   /** Accessible name for the component's hour up button. */
-  @Prop() intlHourUp?: string;
+  @Prop() intlHourUp: string;
 
   /** Accessible name for the component's meridiem (am/pm) input. */
-  @Prop() intlMeridiem?: string;
+  @Prop() intlMeridiem: string;
 
   /** Accessible name for the component's meridiem (am/pm) down button. */
-  @Prop() intlMeridiemDown?: string;
+  @Prop() intlMeridiemDown: string;
 
   /** Accessible name for the component's meridiem (am/pm) up button. */
-  @Prop() intlMeridiemUp?: string;
+  @Prop() intlMeridiemUp: string;
 
   /** Accessible name for the component's minute input. */
-  @Prop() intlMinute?: string;
+  @Prop() intlMinute: string;
 
   /** Accessible name for the component's minute down button. */
-  @Prop() intlMinuteDown?: string;
+  @Prop() intlMinuteDown: string;
 
   /** Accessible name for the component's minute up button. */
-  @Prop() intlMinuteUp?: string;
+  @Prop() intlMinuteUp: string;
 
   /** Accessible name for the component's second input. */
-  @Prop() intlSecond?: string;
+  @Prop() intlSecond: string;
 
   /** Accessible name for the component's second down button. */
-  @Prop() intlSecondDown?: string;
+  @Prop() intlSecondDown: string;
 
   /** Accessible name for the component's second up button. */
-  @Prop() intlSecondUp?: string;
+  @Prop() intlSecondUp: string;
 
   /**
    * BCP 47 language tag for desired language and country format.
@@ -165,7 +172,7 @@ export class InputTimePicker
   /**
    * Specifies the Unicode numeral system used by the component for localization.
    */
-  @Prop() numberingSystem?: NumberingSystem;
+  @Prop() numberingSystem: NumberingSystem;
 
   /**
    * When `true`, the component must have a value in order for the form to submit.
@@ -189,8 +196,6 @@ export class InputTimePicker
 
   /**
    * Determines where the popover will be positioned relative to the input.
-   *
-   * @see [LogicalPlacement](https://github.com/Esri/calcite-components/blob/master/src/utils/floating-ui.ts#L25)
    */
   @Prop({ reflect: true }) placement: LogicalPlacement = "auto";
 
@@ -369,6 +374,8 @@ export class InputTimePicker
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
+    await componentLoaded(this);
+
     this.calciteInputEl?.setFocus();
   }
 
@@ -512,7 +519,12 @@ export class InputTimePicker
     }
   }
 
+  componentWillLoad(): void {
+    setUpLoadableComponent(this);
+  }
+
   componentDidLoad() {
+    setComponentLoaded(this);
     this.setInputValue(this.localizedValue);
   }
 
@@ -558,6 +570,7 @@ export class InputTimePicker
           />
         </div>
         <calcite-popover
+          disableFocusTrap={true}
           id={popoverId}
           label="Time Picker"
           open={this.open}
@@ -580,7 +593,6 @@ export class InputTimePicker
             intlSecond={this.intlSecond}
             intlSecondDown={this.intlSecondDown}
             intlSecondUp={this.intlSecondUp}
-            lang={this.effectiveLocale}
             numberingSystem={this.numberingSystem}
             onCalciteInternalTimePickerChange={this.timePickerChangeHandler}
             ref={this.setCalciteTimePickerEl}

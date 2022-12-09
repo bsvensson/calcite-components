@@ -15,9 +15,15 @@ import { focusElement, isPrimaryPointerButton, toAriaBoolean } from "../../utils
 import { Fragment, VNode } from "@stencil/core/internal";
 import { getRoundRobinIndex } from "../../utils/array";
 import { guid } from "../../utils/guid";
-import { DeprecatedEventPayload, Scale } from "../interfaces";
+import { Scale } from "../interfaces";
 import { LogicalPlacement, EffectivePlacement, OverlayPositioning } from "../../utils/floating-ui";
 import { isActivationKey } from "../../utils/key";
+import {
+  setUpLoadableComponent,
+  setComponentLoaded,
+  LoadableComponent,
+  componentLoaded
+} from "../../utils/loadable";
 
 const SUPPORTED_MENU_NAV_KEYS = ["ArrowUp", "ArrowDown", "End", "Home"];
 
@@ -31,12 +37,20 @@ const SUPPORTED_MENU_NAV_KEYS = ["ArrowUp", "ArrowDown", "End", "Home"];
   styleUrl: "action-menu.scss",
   shadow: true
 })
-export class ActionMenu {
+export class ActionMenu implements LoadableComponent {
   // --------------------------------------------------------------------------
   //
   //  Lifecycle
   //
   // --------------------------------------------------------------------------
+
+  componentWillLoad(): void {
+    setUpLoadableComponent(this);
+  }
+
+  componentDidLoad(): void {
+    setComponentLoaded(this);
+  }
 
   disconnectedCallback(): void {
     this.disconnectMenuButtonEl();
@@ -62,7 +76,7 @@ export class ActionMenu {
   /**
    * Defines the available placements that can be used when a flip occurs.
    */
-  @Prop() flipPlacements?: EffectivePlacement[];
+  @Prop() flipPlacements: EffectivePlacement[];
 
   /**
    *  Specifies the text string for the component.
@@ -80,7 +94,7 @@ export class ActionMenu {
     if (this.menuButtonEl) {
       this.menuButtonEl.active = open;
     }
-    this.calciteActionMenuOpenChange.emit(open);
+    this.calciteActionMenuOpenChange.emit();
 
     this.setTooltipReferenceElement();
   }
@@ -96,8 +110,6 @@ export class ActionMenu {
 
   /**
    * Determines where the component will be positioned relative to the `referenceElement`.
-   *
-   * @see [LogicalPlacement](https://github.com/Esri/calcite-components/blob/master/src/utils/floating-ui.ts#L25)
    */
   @Prop({ reflect: true }) placement: LogicalPlacement = "auto";
 
@@ -115,9 +127,8 @@ export class ActionMenu {
   /**
    * Emits when the `open` property has changed.
    *
-   * **Note:**: The event payload is deprecated, please use the `open` property on the component instead
    */
-  @Event({ cancelable: false }) calciteActionMenuOpenChange: EventEmitter<DeprecatedEventPayload>;
+  @Event({ cancelable: false }) calciteActionMenuOpenChange: EventEmitter<void>;
 
   @Listen("pointerdown", { target: "window" })
   closeCalciteActionMenuOnClick(event: PointerEvent): void {
@@ -174,6 +185,8 @@ export class ActionMenu {
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
+    await componentLoaded(this);
+
     focusElement(this.menuButtonEl);
   }
 
@@ -286,7 +299,8 @@ export class ActionMenu {
 
     return (
       <calcite-popover
-        disablePointer
+        disableFocusTrap={true}
+        disablePointer={true}
         flipPlacements={flipPlacements}
         label={label}
         offsetDistance={0}

@@ -1,7 +1,6 @@
 export const CSS = {
   container: "container",
   content: "content",
-  contentSpaced: "content--spaced",
   headerContainer: "header-container",
   icon: "icon",
   statusIcon: "status-icon",
@@ -39,5 +38,3 @@ export const ICONS = {
   invalid: "exclamation-mark-triangle",
   refresh: "refresh"
 };
-
-export const HEADING_LEVEL = 4;

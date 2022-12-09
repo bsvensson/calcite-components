@@ -19,6 +19,12 @@ import {
   connectConditionalSlotComponent,
   disconnectConditionalSlotComponent
 } from "../../utils/conditionalSlot";
+import {
+  setUpLoadableComponent,
+  setComponentLoaded,
+  LoadableComponent,
+  componentLoaded
+} from "../../utils/loadable";
 
 /**
  * Notices are intended to be used to present users with important-but-not-crucial contextual tips or copy. Because
@@ -39,7 +45,7 @@ import {
   styleUrl: "notice.scss",
   shadow: true
 })
-export class Notice implements ConditionalSlotComponent {
+export class Notice implements ConditionalSlotComponent, LoadableComponent {
   //--------------------------------------------------------------------------
   //
   //  Element
@@ -82,7 +88,7 @@ export class Notice implements ConditionalSlotComponent {
    *
    * @deprecated use `closable` instead.
    */
-  @Prop({ reflect: true }) dismissible? = false;
+  @Prop({ reflect: true }) dismissible = false;
 
   @Watch("dismissible")
   handleDismissible(value: boolean): void {
@@ -90,7 +96,7 @@ export class Notice implements ConditionalSlotComponent {
   }
 
   /** When `true`, a close button is added to the component. */
-  @Prop({ reflect: true }) closable? = false;
+  @Prop({ reflect: true }) closable = false;
 
   @Watch("closable")
   handleClosable(value: boolean): void {
@@ -148,7 +154,12 @@ export class Notice implements ConditionalSlotComponent {
   }
 
   componentWillLoad(): void {
+    setUpLoadableComponent(this);
     this.requestedIcon = setRequestedIcon(StatusIcons, this.icon, this.color);
+  }
+
+  componentDidLoad(): void {
+    setComponentLoaded(this);
   }
 
   render(): VNode {
@@ -209,6 +220,8 @@ export class Notice implements ConditionalSlotComponent {
   /** Sets focus on the component. */
   @Method()
   async setFocus(): Promise<void> {
+    await componentLoaded(this);
+
     const noticeLinkEl = this.el.querySelector("calcite-link");
 
     if (!this.closeButton && !noticeLinkEl) {
