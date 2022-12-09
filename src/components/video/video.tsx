@@ -205,14 +205,14 @@ export class CalciteVideo {
             text={this.isSubtitleActive ? `${this.subLang?.toUpperCase()}` : null}
           >
             {this.isSubtitleActive && (
-              <calcite-chip appearance="clear" scale="s" value={this.subLang?.toUpperCase()}>
+              <calcite-chip appearance="transparent" scale="s" value={this.subLang?.toUpperCase()}>
                 {this.subLang?.toUpperCase()}
               </calcite-chip>
             )}
           </calcite-action>
           <calcite-dropdown-group selection-mode="single">
             <calcite-dropdown-item
-              active={!this.isSubtitleActive}
+              selected={!this.isSubtitleActive}
               onClick={() => this.handleSubtitleSelection("")}
               onKeyDown={() => this.handleVolumeSliderKeyDown("")}
             >
@@ -237,7 +237,7 @@ export class CalciteVideo {
       <div class="calcite-video-scrubber-wrapper">
         <calcite-slider
           class="calcite-video-scrubber"
-          onCalciteSliderUpdate={(event) => this.updatePlaybackPosition(event)}
+          onCalciteSliderInput={(event) => this.updatePlaybackPosition(event)}
           onKeyDown={(event) => this.handleScrubberKeyDown(event)}
           ref={(el) => (this.scrubberEl = el)}
         />
@@ -317,7 +317,7 @@ export class CalciteVideo {
           dir={dir}
           tabIndex={0}
         >
-          <calcite-loader active={this.isLoading} label="video loading" type="indeterminate" />
+          <calcite-loader hidden={!this.isLoading} label="video loading" type="indeterminate" />
 
           <video
             // ensure video is muted if autoplay is requested
@@ -527,7 +527,7 @@ export class CalciteVideo {
       Object.values(this.availableSubtitles).map((item) => {
         const node = (
           <calcite-dropdown-item
-            active={this.isSubtitleActive && this.subLang === item.language}
+            selected={this.isSubtitleActive && this.subLang === item.language}
             onClick={() => this.handleSubtitleSelection(item.language)}
             onKeyDown={() => this.handleVolumeSliderKeyDown(item.language)}
           >

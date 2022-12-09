@@ -9,10 +9,13 @@ calcite-video .container {
   inline-size: auto;
   max-inline-size: 100%;
   background-color: var(--calcite-ui-foreground-1);
+
   & video {
     max-block-size: 100%;
     max-inline-size: 100%;
     cursor: pointer;
+    border: 1px solid var(--calcite-ui-border-3);
+    border-bottom: 0;
   }
 
   & calcite-loader {
@@ -164,6 +167,10 @@ calcite-video .container[dir="rtl"] .calcite-video-control-item {
   border-inline-end: 0;
   border-inline-start: 1px solid var(--calcite-ui-border-3);
   order: 5;
+  margin-inline-start: auto;
+  & ~ .calcite-video-control-item {
+    margin-inline-start: 0;
+  }
 }
 .calcite-video-subtitle-control-item {
   border-inline-end: 0;
@@ -171,6 +178,9 @@ calcite-video .container[dir="rtl"] .calcite-video-control-item {
   order: 4;
   &:nth-last-child(3) {
     margin-inline-start: auto;
+  }
+  & ~ .calcite-video-playback-rate-control-item {
+    margin-inline-start: 0;
   }
   & ~ .calcite-video-fullscreen-control-item {
     margin-inline-start: 0;
