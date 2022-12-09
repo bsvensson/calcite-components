@@ -15,7 +15,7 @@ calcite-video .container {
     max-inline-size: 100%;
     cursor: pointer;
     border: 1px solid var(--calcite-ui-border-3);
-    border-bottom: 0;
+    border-block-end: 0;
   }
 
   & calcite-loader {

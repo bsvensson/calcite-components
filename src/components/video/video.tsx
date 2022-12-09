@@ -212,9 +212,9 @@ export class CalciteVideo {
           </calcite-action>
           <calcite-dropdown-group selection-mode="single">
             <calcite-dropdown-item
-              selected={!this.isSubtitleActive}
               onClick={() => this.handleSubtitleSelection("")}
               onKeyDown={() => this.handleVolumeSliderKeyDown("")}
+              selected={!this.isSubtitleActive}
             >
               Off
             </calcite-dropdown-item>
@@ -527,9 +527,9 @@ export class CalciteVideo {
       Object.values(this.availableSubtitles).map((item) => {
         const node = (
           <calcite-dropdown-item
-            selected={this.isSubtitleActive && this.subLang === item.language}
             onClick={() => this.handleSubtitleSelection(item.language)}
             onKeyDown={() => this.handleVolumeSliderKeyDown(item.language)}
+            selected={this.isSubtitleActive && this.subLang === item.language}
           >
             {item.language.toUpperCase()}
           </calcite-dropdown-item>
