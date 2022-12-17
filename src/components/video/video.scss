@@ -115,14 +115,16 @@ calcite-video[show-controls-on-hover] .container:hover {
   color: white;
   box-shadow: $shadow-2;
   position: absolute;
-  margin-inline: 0;
+  align-self: center;
+  margin-inline: 0 auto;
   inline-size: auto;
-  padding-block: 0.5em;
-  padding-inline: 0.75em;
-  inset-block-end: 1em;
+  padding-block: 0.75em;
+  padding-inline: 1em;
+  inset-block-end: 6em;
   z-index: 99;
-  @include font-size(-2);
+  @include font-size(0);
   display: none;
+  pointer-events: none;
 
   &.calcite-video-subtitle-container-active {
     display: block;

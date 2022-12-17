@@ -42,7 +42,7 @@ export class CalciteVideo {
   @Prop({ reflect: true }) autoplay?: boolean;
 
   /** is the media muted */
-  @Prop({ reflect: true }) muted?: boolean;
+  @Prop({ mutable: true, reflect: true }) muted?: boolean;
 
   /** allow play on hover  */
   @Prop({ reflect: true }) playOnHover?: boolean;
@@ -201,19 +201,18 @@ export class CalciteVideo {
             icon="speech-bubbles"
             icon-flip-rtl
             indicator={this.isSubtitleActive}
-            slot="dropdown-trigger"
+            slot="trigger"
             text={this.isSubtitleActive ? `${this.subLang?.toUpperCase()}` : null}
           >
             {this.isSubtitleActive && (
-              <calcite-chip appearance="transparent" scale="s" value={this.subLang?.toUpperCase()}>
+              <calcite-chip appearance="outline" scale="s" value={this.subLang?.toUpperCase()}>
                 {this.subLang?.toUpperCase()}
               </calcite-chip>
             )}
           </calcite-action>
           <calcite-dropdown-group selection-mode="single">
             <calcite-dropdown-item
-              onClick={() => this.handleSubtitleSelection("")}
-              onKeyDown={() => this.handleVolumeSliderKeyDown("")}
+              onCalciteDropdownItemSelect={() => this.handleSubtitleSelection("")}
               selected={!this.isSubtitleActive}
             >
               Off
@@ -269,38 +268,34 @@ export class CalciteVideo {
             }
             icon-flip-rtl
             indicator={this.currentPlaybackRate !== 1}
-            slot="dropdown-trigger"
+            slot="trigger"
             text={this.isSubtitleActive ? `${this.subLang?.toUpperCase()}` : null}
           />
           <calcite-dropdown-group selection-mode="single">
             <calcite-dropdown-item
               icon-start="1-4x"
-              onClick={() => this.handlePlaybackRateUpdate(0.25)}
-              onKeyDown={() => this.handlePlaybackRateUpdate(0.25)}
+              onCalciteDropdownItemSelect={() => this.handlePlaybackRateUpdate(0.25)}
               selected={this.currentPlaybackRate === 0.25}
             >
               Quarter
             </calcite-dropdown-item>
             <calcite-dropdown-item
               icon-start="1-2x"
-              onClick={() => this.handlePlaybackRateUpdate(0.5)}
-              onKeyDown={() => this.handlePlaybackRateUpdate(0.5)}
+              onCalciteDropdownItemSelect={() => this.handlePlaybackRateUpdate(0.5)}
               selected={this.currentPlaybackRate === 0.5}
             >
               Half
             </calcite-dropdown-item>
             <calcite-dropdown-item
               icon-start="1x"
-              onClick={() => this.handlePlaybackRateUpdate(1)}
-              onKeyDown={() => this.handlePlaybackRateUpdate(1)}
+              onCalciteDropdownItemSelect={() => this.handlePlaybackRateUpdate(1)}
               selected={this.currentPlaybackRate === 1}
             >
               Default
             </calcite-dropdown-item>
             <calcite-dropdown-item
               icon-start="2x"
-              onClick={() => this.handlePlaybackRateUpdate(2)}
-              onKeyDown={() => this.handlePlaybackRateUpdate(2)}
+              onCalciteDropdownItemSelect={() => this.handlePlaybackRateUpdate(2)}
               selected={this.currentPlaybackRate === 2}
             >
               Double
@@ -315,6 +310,12 @@ export class CalciteVideo {
         <div
           class={`container ${this.isFullscreen ? " container-fullscreen" : ""}`}
           dir={dir}
+          onBlur={() => this.handleBlur()}
+          onClick={() => this.handleClick()}
+          onFocus={() => this.handleFocus()}
+          onKeyDown={(event) => this.handleKeydown(event)}
+          onMouseEnter={() => this.handleMouseEnter()}
+          onMouseLeave={() => this.handleMouseLeave()}
           tabIndex={0}
         >
           <calcite-loader hidden={!this.isLoading} label="video loading" type="indeterminate" />
@@ -367,49 +368,10 @@ export class CalciteVideo {
   //--------------------------------------------------------------------------
 
   // pause other instances of video on page when another starts
-  @Listen("calciteVideoPlay", { target: "window" }) videoPlayListener(event: CustomEvent): void {
+  @Listen("calciteVideoPlay", { target: "window" })
+  videoPlayListener(event: CustomEvent): void {
     if (event.target !== this.el) {
       this.pauseVideo();
-    }
-  }
-
-  @Listen("click") clickListener(event: MouseEvent): void {
-    if (!this.isLoading && !this.playOnHover && event.target === this.videoEl) {
-      this.toggleVideo();
-    }
-  }
-
-  @Listen("mouseenter") mouseEnterListener(): MouseEvent {
-    return !this.isLoading && this.playOnHover && document.activeElement !== this.el
-      ? this.playVideo()
-      : undefined;
-  }
-
-  @Listen("mouseleave") mouseLeaveListener(): MouseEvent {
-    return !this.isLoading && this.playOnHover && document.activeElement !== this.el
-      ? this.pauseVideo()
-      : undefined;
-  }
-
-  @Listen("focus") focusInListener(): FocusEvent {
-    if (!this.isLoading && this.playOnHover) {
-      return this.playVideo();
-    }
-  }
-
-  @Listen("blur") focusOutListener(): FocusEvent {
-    if (!this.isLoading && this.playOnHover) {
-      return this.pauseVideo();
-    }
-  }
-
-  @Listen("keydown") keydownListener(event: KeyboardEvent): void {
-    if (!this.isLoading && !this.playOnHover && event.composedPath()[0] === this.el) {
-      const key = event.key;
-      if (key === " " || key === "Enter") {
-        event.preventDefault();
-        this.toggleVideo();
-      }
     }
   }
 
@@ -486,6 +448,46 @@ export class CalciteVideo {
   //
   //--------------------------------------------------------------------------
 
+  private handleMouseEnter() {
+    return !this.isLoading && this.playOnHover && document.activeElement !== this.el
+      ? this.playVideo()
+      : undefined;
+  }
+
+  private handleMouseLeave() {
+    return !this.isLoading && this.playOnHover && document.activeElement !== this.el
+      ? this.pauseVideo()
+      : undefined;
+  }
+
+  private handleClick() {
+    if (!this.isLoading && !this.playOnHover && event.target === this.videoEl) {
+      this.toggleVideo;
+    }
+  }
+
+  private handleFocus() {
+    if (!this.isLoading && this.playOnHover) {
+      return this.playVideo();
+    }
+  }
+
+  private handleBlur() {
+    if (!this.isLoading && this.playOnHover) {
+      return this.pauseVideo();
+    }
+  }
+
+  private handleKeydown(event: KeyboardEvent) {
+    if (!this.isLoading && !this.playOnHover && event.composedPath()[0] === this.el) {
+      const key = event.key;
+      if (key === " " || key === "Enter") {
+        event.preventDefault();
+        this.toggleVideo;
+      }
+    }
+  }
+
   videoLoadStart(): void {
     this.isLoading = true;
   }
@@ -527,8 +529,7 @@ export class CalciteVideo {
       Object.values(this.availableSubtitles).map((item) => {
         const node = (
           <calcite-dropdown-item
-            onClick={() => this.handleSubtitleSelection(item.language)}
-            onKeyDown={() => this.handleVolumeSliderKeyDown(item.language)}
+            onCalciteDropdownItemSelect={() => this.handleSubtitleSelection(item.language)}
             selected={this.isSubtitleActive && this.subLang === item.language}
           >
             {item.language.toUpperCase()}
