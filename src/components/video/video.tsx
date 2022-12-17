@@ -339,7 +339,7 @@ export class CalciteVideo {
           >
             <slot />
           </video>
-          {subtitleContainer}
+          {this.hasSubtitle ? subtitleContainer : null}
           {!this.disableControls ? (
             <div class="calcite-video-footer">
               {!this.disableProgress ? progress : null}
