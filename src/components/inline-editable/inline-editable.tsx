@@ -29,8 +29,7 @@ import { InlineEditableMessages } from "./assets/inline-editable/t9n";
 import {
   setUpLoadableComponent,
   setComponentLoaded,
-  LoadableComponent,
-  componentLoaded
+  LoadableComponent
 } from "../../utils/loadable";
 
 /**
@@ -291,9 +290,8 @@ export class InlineEditable
 
   @Method()
   async setFocus(): Promise<void> {
-    await componentLoaded(this);
-
-    this.el?.focus();
+    await this.el.componentOnReady();
+    requestAnimationFrame(() => this.el?.focus());
   }
 
   //--------------------------------------------------------------------------

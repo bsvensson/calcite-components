@@ -33,6 +33,10 @@
       }
     </style>
     <script>
+      customElements
+        .whenDefined("calcite-inline-editable")
+        .then(() => document.querySelector("calcite-inline-editable").setFocus());
+
       const handleChangesFoInput = (id, isSuccess = true) => {
         const afterConfirm = () =>
           new Promise((resolve, reject) => {
