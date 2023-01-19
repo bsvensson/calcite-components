@@ -1,6 +1,6 @@
 import { E2EPage, newE2EPage } from "@stencil/core/testing";
-import { disabled, focusable, formAssociated, labelable, renders, hidden } from "../../tests/commonTests";
 import { html } from "../../../support/formatting";
+import { disabled, focusable, formAssociated, hidden, labelable, renders } from "../../tests/commonTests";
 
 describe("calcite-segmented-control", () => {
   it("renders", () => renders("calcite-segmented-control", { display: "flex" }));
@@ -96,7 +96,7 @@ describe("calcite-segmented-control", () => {
         </calcite-segmented-control>`
     );
     const element = await page.find("calcite-segmented-control");
-    const eventSpy = await element.spyOnEvent("calciteRadioGroupChange");
+    const eventSpy = await element.spyOnEvent("calciteSegmentedControlChange");
     expect(eventSpy).not.toHaveReceivedEvent();
     const [first, second, third] = await page.findAll("calcite-segmented-control-item");
 
@@ -131,7 +131,7 @@ describe("calcite-segmented-control", () => {
 
       const waitForFrame = async () => await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
-      document.addEventListener("calciteRadioGroupChange", () => calls++);
+      document.addEventListener("calciteSegmentedControlChange", () => calls++);
 
       let [first, second] = Array.from(document.querySelectorAll("calcite-segmented-control-item"));
 
@@ -176,7 +176,7 @@ describe("calcite-segmented-control", () => {
         </calcite-segmented-control>`
       );
       const element = await page.find("calcite-segmented-control");
-      const spy = await element.spyOnEvent("calciteRadioGroupChange");
+      const spy = await element.spyOnEvent("calciteSegmentedControlChange");
 
       const firstElement = await element.find("calcite-segmented-control-item[checked]");
       await firstElement.click();
@@ -225,7 +225,7 @@ describe("calcite-segmented-control", () => {
         </calcite-segmented-control>`
       );
       const element = await page.find("calcite-segmented-control");
-      const spy = await element.spyOnEvent("calciteRadioGroupChange");
+      const spy = await element.spyOnEvent("calciteSegmentedControlChange");
 
       const firstElement = await element.find("calcite-segmented-control-item[checked]");
       await firstElement.click();
