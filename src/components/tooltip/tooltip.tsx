@@ -1,17 +1,36 @@
-import { Component, Element, Host, Method, Prop, State, Watch, h, VNode } from "@stencil/core";
-import { CSS, ARIA_DESCRIBED_BY } from "./resources";
-import { StrictModifiers, Instance as Popper } from "@popperjs/core";
+import {
+  Component,
+  Element,
+  Event,
+  EventEmitter,
+  h,
+  Host,
+  Method,
+  Prop,
+  State,
+  VNode,
+  Watch
+} from "@stencil/core";
+import { queryElementRoots, toAriaBoolean } from "../../utils/dom";
+import {
+  connectFloatingUI,
+  defaultOffsetDistance,
+  disconnectFloatingUI,
+  FloatingCSS,
+  FloatingUIComponent,
+  LogicalPlacement,
+  OverlayPositioning,
+  ReferenceElement,
+  reposition,
+  updateAfterClose
+} from "../../utils/floating-ui";
 import { guid } from "../../utils/guid";
 import {
-  PopperPlacement,
-  defaultOffsetDistance,
-  createPopper,
-  updatePopper,
-  CSS as PopperCSS,
-  OverlayPositioning,
-  ReferenceElement
-} from "../../utils/popper";
-import { queryElementRoots, toAriaBoolean } from "../../utils/dom";
+  connectOpenCloseComponent,
+  disconnectOpenCloseComponent,
+  OpenCloseComponent
+} from "../../utils/openCloseComponent";
+import { ARIA_DESCRIBED_BY, CSS } from "./resources";
 
 import TooltipManager from "./TooltipManager";
 
@@ -25,21 +44,21 @@ const manager = new TooltipManager();
   styleUrl: "tooltip.scss",
   shadow: true
 })
-export class Tooltip {
+export class Tooltip implements FloatingUIComponent, OpenCloseComponent {
   // --------------------------------------------------------------------------
   //
   //  Properties
   //
   // --------------------------------------------------------------------------
 
-  /** Closes the `calcite-tooltip` when the `referenceElement` is clicked. */
-  @Prop() closeOnClick = false;
+  /** Closes the component when the `referenceElement` is clicked. */
+  @Prop({ reflect: true }) closeOnClick = false;
 
-  /** Accessible name for the `calcite-tooltip`. */
+  /** Accessible name for the component. */
   @Prop() label!: string;
 
   /**
-   * Offset the position of the `calcite-tooltip` away from the `referenceElement`.
+   * Offset the position of the component away from the `referenceElement`.
    *
    * @default 6
    */
@@ -47,46 +66,64 @@ export class Tooltip {
 
   @Watch("offsetDistance")
   offsetDistanceOffsetHandler(): void {
-    this.reposition();
+    this.reposition(true);
   }
 
   /**
-   * Offset the position of the `calcite-tooltip` along the `referenceElement`.
+   * Offset the position of the component along the `referenceElement`.
    */
   @Prop({ reflect: true }) offsetSkidding = 0;
 
   @Watch("offsetSkidding")
   offsetSkiddingHandler(): void {
-    this.reposition();
+    this.reposition(true);
   }
 
   /**
-   * When true, the `calcite-tooltip` is open.
+   * When `true`, the component is open.
    */
   @Prop({ reflect: true }) open = false;
 
   @Watch("open")
-  openHandler(): void {
-    this.reposition();
+  openHandler(value: boolean): void {
+    if (value) {
+      this.reposition(true);
+    } else {
+      updateAfterClose(this.el);
+    }
   }
 
-  /** Describes the positioning type to use for the overlaid content. If the `referenceElement` is in a fixed container, use the "fixed" value. */
-  @Prop() overlayPositioning: OverlayPositioning = "absolute";
+  /**
+   * Determines the type of positioning to use for the overlaid content.
+   *
+   * Using `"absolute"` will work for most cases. The component will be positioned inside of overflowing parent containers and will affect the container's layout.
+   *
+   * The `"fixed"` value should be used to escape an overflowing parent container, or when the reference element's `position` CSS property is `"fixed"`.
+   *
+   */
+  @Prop({ reflect: true }) overlayPositioning: OverlayPositioning = "absolute";
+
+  @Watch("overlayPositioning")
+  overlayPositioningHandler(): void {
+    this.reposition(true);
+  }
 
   /**
    * Determines where the component will be positioned relative to the `referenceElement`.
-   *
-   * @see [PopperPlacement](https://github.com/Esri/calcite-components/blob/master/src/utils/popper.ts#L25)
    */
-  @Prop({ reflect: true }) placement: PopperPlacement = "auto";
+  @Prop({ reflect: true }) placement: LogicalPlacement = "auto";
 
   @Watch("placement")
   placementHandler(): void {
-    this.reposition();
+    this.reposition(true);
   }
 
   /**
-   * The `referenceElement` to position `calcite-tooltip` according to its "placement" value. Setting to the `HTMLElement` is preferred so `calcite-tooltip` does not need to query the DOM for the `referenceElement`. However, a string ID of the reference element can be used.
+   * The `referenceElement` to position the component according to its `"placement"` value.
+   *
+   * Setting to the `HTMLElement` is preferred so the component does not need to query the DOM for the `referenceElement`.
+   *
+   * However, a string ID of the reference element can be used.
    */
   @Prop() referenceElement: ReferenceElement | string;
 
@@ -107,9 +144,13 @@ export class Tooltip {
 
   arrowEl: HTMLDivElement;
 
-  popper: Popper;
-
   guid = `calcite-tooltip-${guid()}`;
+
+  hasLoaded = false;
+
+  openTransitionProp = "opacity";
+
+  transitionEl: HTMLDivElement;
 
   // --------------------------------------------------------------------------
   //
@@ -117,18 +158,42 @@ export class Tooltip {
   //
   // --------------------------------------------------------------------------
 
-  componentWillLoad(): void {
-    this.setUpReferenceElement();
+  connectedCallback(): void {
+    connectOpenCloseComponent(this);
+    this.setUpReferenceElement(this.hasLoaded);
   }
 
   componentDidLoad(): void {
-    this.reposition();
+    if (this.referenceElement && !this.effectiveReferenceElement) {
+      this.setUpReferenceElement();
+    }
+    this.reposition(true);
+    this.hasLoaded = true;
   }
 
   disconnectedCallback(): void {
     this.removeReferences();
-    this.destroyPopper();
+    disconnectFloatingUI(this, this.effectiveReferenceElement, this.el);
+    disconnectOpenCloseComponent(this);
   }
+
+  //--------------------------------------------------------------------------
+  //
+  //  Events
+  //
+  //--------------------------------------------------------------------------
+
+  /** Fires when the component is requested to be closed and before the closing transition begins. */
+  @Event({ cancelable: false }) calciteTooltipBeforeClose: EventEmitter<void>;
+
+  /** Fires when the component is closed and animation is complete. */
+  @Event({ cancelable: false }) calciteTooltipClose: EventEmitter<void>;
+
+  /** Fires when the component is added to the DOM but not rendered, and before the opening transition begins. */
+  @Event({ cancelable: false }) calciteTooltipBeforeOpen: EventEmitter<void>;
+
+  /** Fires when the component is open and animation is complete. */
+  @Event({ cancelable: false }) calciteTooltipOpen: EventEmitter<void>;
 
   // --------------------------------------------------------------------------
   //
@@ -136,20 +201,38 @@ export class Tooltip {
   //
   // --------------------------------------------------------------------------
 
-  /** Updates the position of the component. */
+  /**
+   * Updates the position of the component.
+   *
+   * @param delayed
+   */
   @Method()
-  async reposition(): Promise<void> {
-    const { popper, el, placement } = this;
-    const modifiers = this.getModifiers();
+  async reposition(delayed = false): Promise<void> {
+    const {
+      el,
+      effectiveReferenceElement,
+      placement,
+      overlayPositioning,
+      offsetDistance,
+      offsetSkidding,
+      arrowEl
+    } = this;
 
-    popper
-      ? await updatePopper({
-          el,
-          modifiers,
-          placement,
-          popper
-        })
-      : this.createPopper();
+    return reposition(
+      this,
+      {
+        floatingEl: el,
+        referenceEl: effectiveReferenceElement,
+        overlayPositioning,
+        placement,
+        offsetDistance,
+        offsetSkidding,
+        includeArrow: true,
+        arrowEl,
+        type: "tooltip"
+      },
+      delayed
+    );
   }
 
   // --------------------------------------------------------------------------
@@ -158,19 +241,40 @@ export class Tooltip {
   //
   // --------------------------------------------------------------------------
 
-  setUpReferenceElement = (): void => {
+  onBeforeOpen(): void {
+    this.calciteTooltipBeforeOpen.emit();
+  }
+
+  onOpen(): void {
+    this.calciteTooltipOpen.emit();
+  }
+
+  onBeforeClose(): void {
+    this.calciteTooltipBeforeClose.emit();
+  }
+
+  onClose(): void {
+    this.calciteTooltipClose.emit();
+  }
+
+  private setTransitionEl = (el): void => {
+    this.transitionEl = el;
+    connectOpenCloseComponent(this);
+  };
+
+  setUpReferenceElement = (warn = true): void => {
     this.removeReferences();
     this.effectiveReferenceElement = this.getReferenceElement();
+    connectFloatingUI(this, this.effectiveReferenceElement, this.el);
 
     const { el, referenceElement, effectiveReferenceElement } = this;
-    if (referenceElement && !effectiveReferenceElement) {
+    if (warn && referenceElement && !effectiveReferenceElement) {
       console.warn(`${el.tagName}: reference-element id "${referenceElement}" was not found.`, {
         el
       });
     }
 
     this.addReferences();
-    this.createPopper();
   };
 
   getId = (): string => {
@@ -189,6 +293,7 @@ export class Tooltip {
     if ("setAttribute" in effectiveReferenceElement) {
       effectiveReferenceElement.setAttribute(ARIA_DESCRIBED_BY, id);
     }
+
     manager.registerElement(effectiveReferenceElement, this.el);
   };
 
@@ -202,6 +307,7 @@ export class Tooltip {
     if ("removeAttribute" in effectiveReferenceElement) {
       effectiveReferenceElement.removeAttribute(ARIA_DESCRIBED_BY);
     }
+
     manager.unregisterElement(effectiveReferenceElement);
   };
 
@@ -213,58 +319,6 @@ export class Tooltip {
         ? queryElementRoots(el, { id: referenceElement })
         : referenceElement) || null
     );
-  }
-
-  getModifiers(): Partial<StrictModifiers>[] {
-    const { arrowEl, offsetDistance, offsetSkidding } = this;
-
-    const arrowModifier: Partial<StrictModifiers> = {
-      name: "arrow",
-      enabled: true,
-      options: {
-        element: arrowEl
-      }
-    };
-
-    const offsetModifier: Partial<StrictModifiers> = {
-      name: "offset",
-      enabled: true,
-      options: {
-        offset: [offsetSkidding, offsetDistance]
-      }
-    };
-
-    const eventListenerModifier: Partial<StrictModifiers> = {
-      name: "eventListeners",
-      enabled: this.open
-    };
-
-    return [arrowModifier, offsetModifier, eventListenerModifier];
-  }
-
-  createPopper(): void {
-    this.destroyPopper();
-
-    const { el, placement, effectiveReferenceElement: referenceEl, overlayPositioning } = this;
-    const modifiers = this.getModifiers();
-
-    this.popper = createPopper({
-      el,
-      modifiers,
-      placement,
-      overlayPositioning,
-      referenceEl
-    });
-  }
-
-  destroyPopper(): void {
-    const { popper } = this;
-
-    if (popper) {
-      popper.destroy();
-    }
-
-    this.popper = null;
   }
 
   // --------------------------------------------------------------------------
@@ -282,15 +336,17 @@ export class Tooltip {
       <Host
         aria-hidden={toAriaBoolean(hidden)}
         aria-label={label}
+        aria-live="polite"
         calcite-hydrated-hidden={hidden}
         id={this.getId()}
         role="tooltip"
       >
         <div
           class={{
-            [PopperCSS.animation]: true,
-            [PopperCSS.animationActive]: displayed
+            [FloatingCSS.animation]: true,
+            [FloatingCSS.animationActive]: displayed
           }}
+          ref={this.setTransitionEl}
         >
           <div class={CSS.arrow} ref={(arrowEl) => (this.arrowEl = arrowEl)} />
           <div class={CSS.container}>

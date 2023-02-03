@@ -31,7 +31,7 @@
   }
   .chevron {
     // @apply h-16;
-    height: 3.5rem;
+    block-size: 3.5rem;
   }
 }
 
@@ -50,7 +50,7 @@
     px-1
     outline-none
     transition-default;
-  width: calc(100% / 7);
+  inline-size: calc(100% / 7);
 
   &:focus {
     @apply focus-inset;
@@ -73,6 +73,7 @@
 .text {
   @apply my-auto
     w-full
+    flex
     flex-auto
     items-center
     justify-center
@@ -80,7 +81,7 @@
     leading-none;
 }
 
-.text-nreverse {
+.text--reverse {
   @apply flex-row-reverse;
 }
 
@@ -101,11 +102,10 @@
   @apply font-inherit
     focus-base
     relative
-    w-12
+    w-10
     border-none
     bg-transparent
     text-center;
-  z-index: 2;
   &:hover {
     @apply duration-100 ease-in-out;
     transition-property: outline-color;
@@ -118,7 +118,7 @@
 }
 
 .year--suffix {
-  @apply w-16 text-left;
+  @apply text-left;
 }
 
 .year-wrap {
@@ -126,14 +126,8 @@
 }
 
 .suffix {
-  @apply absolute
-    top-0
-    left-0
-    w-16
+  @apply top-0 
     whitespace-nowrap
-    text-left;
-}
-
-.suffix__invisible {
-  @apply invisible;
+    text-start;
+  inset-inline-start: 0;
 }

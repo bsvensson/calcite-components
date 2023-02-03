@@ -205,6 +205,21 @@ export default {
       },
       transitionTimingFunction: {
         cubic: "cubic-bezier(0.215, 0.440, 0.420, 0.880)"
+      },
+      maxHeight: {
+        menu: "45vh"
+      },
+      zIndex: {
+        deep: "-999999",
+        default: "1",
+        sticky: "300",
+        header: "400",
+        toast: "500",
+        dropdown: "600",
+        overlay: "700",
+        modal: "800",
+        popover: "900",
+        tooltip: "901"
       }
     }
   },
@@ -217,6 +232,9 @@ export default {
         },
         ".focus-base": {
           "outline-color": "transparent"
+        },
+        ".focus-normal": {
+          outline: "2px solid var(--calcite-ui-brand)"
         },
         ".focus-outset": {
           outline: "2px solid var(--calcite-ui-brand)",
@@ -240,7 +258,7 @@ export default {
       };
       addUtilities(newUtilities);
     }),
-    plugin(({ addUtilities, theme, variants }) => {
+    plugin(({ addUtilities, theme }) => {
       const colors = flattenColorPalette(theme("borderColor"));
       delete colors["default"];
 
@@ -252,7 +270,7 @@ export default {
       }));
       const utilities = Object.assign({}, ...colorMap);
 
-      addUtilities(utilities, variants("borderColor"));
+      addUtilities(utilities);
     })
   ]
 };

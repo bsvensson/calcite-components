@@ -1,6 +1,6 @@
-import { h, Component } from "@stencil/core";
+import { Component, h } from "@stencil/core";
 import { newSpecPage } from "@stencil/core/testing";
-import { Heading, constrainHeadingLevel } from "./Heading";
+import { constrainHeadingLevel, Heading } from "./Heading";
 
 describe("constrainHeadingLevel", () => {
   it("should constrain heading levels", () => {
@@ -28,5 +28,14 @@ describe("Heading", () => {
     });
 
     expect(page.root).toEqualHtml(`<h1 class="test">My Heading</h1>`);
+  });
+
+  it("should render a div", async () => {
+    const page = await newSpecPage({
+      components: [Dummy], // Required so we are feeding it a Dummy component
+      template: () => <Heading class="test">My Heading</Heading>
+    });
+
+    expect(page.root).toEqualHtml(`<div class="test">My Heading</div>`);
   });
 });

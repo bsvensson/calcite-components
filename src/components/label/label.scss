@@ -3,11 +3,11 @@
  *
  * These properties can be overridden using the component's tag as selector.
  *
- * @prop --calcite-label-margin-bottom: The bottom margin of `calcite-label`.
+ * @prop --calcite-label-margin-bottom: The spacing below the component.
  */
 
 :host {
-  @apply inline;
+  @apply flex;
 }
 
 :host([alignment="start"]) {
@@ -23,24 +23,21 @@
 }
 
 :host([scale="s"]) {
-  --calcite-label-margin-bottom: theme("spacing.2");
   .container {
     @apply text-n2h gap-1;
-    margin-bottom: var(--calcite-label-margin-bottom);
+    margin-block-end: var(--calcite-label-margin-bottom, theme("spacing.2"));
   }
 }
 :host([scale="m"]) {
-  --calcite-label-margin-bottom: theme("spacing.3");
   .container {
     @apply text-n1h gap-2;
-    margin-bottom: var(--calcite-label-margin-bottom);
+    margin-block-end: var(--calcite-label-margin-bottom, theme("spacing.3"));
   }
 }
 :host([scale="l"]) {
-  --calcite-label-margin-bottom: theme("spacing.4");
   .container {
     @apply text-0h gap-2;
-    margin-bottom: var(--calcite-label-margin-bottom);
+    margin-block-end: var(--calcite-label-margin-bottom, theme("spacing.4"));
   }
 }
 
