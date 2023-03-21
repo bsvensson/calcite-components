@@ -319,14 +319,6 @@ export type NumberStringFormatOptions = Intl.NumberFormatOptions & {
  * This util formats and parses numbers for localization
  */
 export class NumberStringFormat {
-  /**
-   * The actual group separator for the specified locale.
-   * Some white space group separators don't render correctly in the browser,
-   * so we replace them with a normal <SPACE>.
-   */
-  private _actualGroup: string;
-
-  /** the corrected group separator */
   private _group: string;
 
   get group(): string {
@@ -403,39 +395,36 @@ export class NumberStringFormat {
     const index = new Map(this._digits.map((d, i) => [d, i]));
     const parts = new Intl.NumberFormat(this._numberFormatOptions.locale).formatToParts(-12345678.9);
 
-    this._actualGroup = parts.find((part) => part.type === "group").value;
+    this._group = parts.find((part) => part.type === "group").value;
     // change whitespace group characters that don't render correctly
-    this._group = this._actualGroup.trim().length === 0 ? " " : this._actualGroup;
+    // this._group = this._actualGroup.trim().length === 0 ? " " : this._actualGroup;
     this._decimal = parts.find((part) => part.type === "decimal").value;
     this._minusSign = parts.find((part) => part.type === "minusSign").value;
     this._getDigitIndex = (digit: string) => index.get(digit);
   }
 
-  delocalize = (numberString: string): string =>
+  delocalize(numberString: string): string {
     // For performance, (de)localization is skipped if the formatter isn't initialized.
     // In order to localize/delocalize, e.g. when lang/numberingSystem props are not default values,
     // `numberFormatOptions` must be set in a component to create and cache the formatter.
-    this._numberFormatOptions
+    return this._numberFormatOptions
       ? sanitizeExponentialNumberString(numberString, (nonExpoNumString: string): string =>
           nonExpoNumString
-            .trim()
-            .replace(new RegExp(`[${this._minusSign}]`, "g"), "-")
             .replace(new RegExp(`[${this._group}]`, "g"), "")
+            .replace(new RegExp(`[${this._minusSign}]`, "g"), "-")
             .replace(new RegExp(`[${this._decimal}]`, "g"), ".")
             .replace(new RegExp(`[${this._digits.join("")}]`, "g"), this._getDigitIndex)
         )
       : numberString;
+  }
 
-  localize = (numberString: string): string =>
-    this._numberFormatOptions
+  localize(numberString: string): string {
+    return this._numberFormatOptions
       ? sanitizeExponentialNumberString(numberString, (nonExpoNumString: string): string =>
-          isValidNumber(nonExpoNumString.trim())
-            ? new BigDecimal(nonExpoNumString.trim())
-                .format(this)
-                .replace(new RegExp(`[${this._actualGroup}]`, "g"), this._group)
-            : nonExpoNumString
+          isValidNumber(nonExpoNumString.trim()) ? new BigDecimal(nonExpoNumString).format(this) : nonExpoNumString
         )
       : numberString;
+  }
 }
 
 export const numberStringFormatter = new NumberStringFormat();

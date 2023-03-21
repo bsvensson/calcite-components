@@ -38,7 +38,8 @@ describe("NumberStringFormat", () => {
 
   it("delocalizes and localizes arab/ar numberingSystem/lang numbers with group separators", () => {
     const numberString = "-١٢٣٬٤٥٦٬٧٨٠٫٩٨٧";
-    numberStringFormatter.numberFormatOptions = { locale: "ar",
+    numberStringFormatter.numberFormatOptions = {
+      locale: "ar",
       numberingSystem: "arab",
       useGrouping: true
     };
@@ -53,7 +54,8 @@ describe("NumberStringFormat", () => {
     const numberString = "-১২,৩৪,৫৬,৭৮০.৯৮৭";
     numberStringFormatter.numberFormatOptions = {
       locale: "bn-BD",
-      numberingSystem: "beng"
+      numberingSystem: "beng",
+      useGrouping: true
     };
 
     const delocalizedNumberString = numberStringFormatter.delocalize(numberString);
@@ -66,7 +68,8 @@ describe("NumberStringFormat", () => {
     const numberString = "-१२,३४,५६,७८०.९८७";
     numberStringFormatter.numberFormatOptions = {
       locale: "sa-IN",
-      numberingSystem: "deva"
+      numberingSystem: "deva",
+      useGrouping: true
     };
 
     const delocalizedNumberString = numberStringFormatter.delocalize(numberString);
