@@ -264,9 +264,13 @@ export class TileSelect implements InteractiveComponent, LoadableComponent {
   // --------------------------------------------------------------------------
 
   private renderInput(): void {
-    this.input = document.createElement(
-      this.type === "radio" ? "calcite-radio-button" : "calcite-checkbox"
-    );
+    if (!this.input) {
+      this.input = document.createElement(
+        this.type === "radio" ? "calcite-radio-button" : "calcite-checkbox"
+      );
+      this.el.insertAdjacentElement("beforeend", this.input);
+    }
+
     this.input.checked = this.checked;
     this.input.disabled = this.disabled;
     this.input.hidden = this.hidden;
@@ -280,8 +284,6 @@ export class TileSelect implements InteractiveComponent, LoadableComponent {
     if (this.value) {
       this.input.value = this.value != null ? this.value.toString() : "";
     }
-
-    this.el.insertAdjacentElement("beforeend", this.input);
   }
 
   render(): VNode {
